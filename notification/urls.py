@@ -1,5 +1,7 @@
 from django.urls import path
 
+from . import views
+
 urlpatterns = [
-    # path('notification/', ...)
+    path('notification', views.mock.notification)
 ]
