@@ -18,3 +18,7 @@ class User(models.Model):
     profile_image = models.Field()
     created_at = models.DateTimeField(auto_now_add=True)
     last_logged_in = models.DateTimeField(null=True)
+
+class FollowedUser(models.Model):
+    user_id = models.ForeignKey(User, on_delete=models.CASCADE)         # 팔로우 받는 사람
+    followed_by = models.ForeignKey(User, on_delete=models.CASCADE)     # 팔로우 하는 사람
