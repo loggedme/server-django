@@ -188,8 +188,8 @@ def user_detail_or_search(self, request, user_id):  # 사용자 조회 / query p
             return JsonResponse(status=200, data=data)
         return HttpResponse(status=400)
 
-    if User.objects.filter(id=user_id).exists():    # 사용자 조회
-        data = {
+    # if User.objects.filter(id=user_id).exists():    # 사용자 조회
+    data = {
             "user": {
                 "id": "1-sxxx-ajgleja1",
                 "name": "John Doe",
@@ -230,25 +230,24 @@ def user_detail_or_search(self, request, user_id):  # 사용자 조회 / query p
                 "follower": 172
             }
         }
-        return JsonResponse(status=200, data=data)
-    else:
-        return HttpResponse(status=404)
-
+    return JsonResponse(status=200, data=data)
+    # else:
+    #     return HttpResponse(status=404)
 
 # noinspection PyMethodMayBeStatic
 class UserApi(View):
     def post(self, request):     # 사용자 회원 가입
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        name = request.POST.get('name')
-        handle = request.POST.get('handle')
-        account_type = request.POST.get('account_type')
-
-        if not email or not password or not name or not handle or not account_type:
-            return HttpResponse(status=400)
-
-        if User.objects.filter(email=email).exists() or User.objects.filter(handle=handle).exists():
-            return HttpResponse(status=409)
+        # email = request.POST.get('email')
+        # password = request.POST.get('password')
+        # name = request.POST.get('name')
+        # handle = request.POST.get('handle')
+        # account_type = request.POST.get('account_type')
+        #
+        # if not email or not password or not name or not handle or not account_type:
+        #     return HttpResponse(status=400)
+        #
+        # if User.objects.filter(email=email).exists() or User.objects.filter(handle=handle).exists():
+        #     return HttpResponse(status=409)
 
         # user = User.objects.create_user(
         #     email=email, password=password,
@@ -264,15 +263,15 @@ class UserApi(View):
         })
 
     def put(self, request, user_id):      # 사용자 정보 수정
-        name = request.POST.get('name')
-        handle = request.POST.get('handle')
-        profile_image = request.POST.get('profile_image')
-
-        if not name or not handle:
-            return HttpResponse(status=400)
-
-        if request.user == User.objects.get(id=user_id):
-            return HttpResponse(status=401)
+        # name = request.POST.get('name')
+        # handle = request.POST.get('handle')
+        # profile_image = request.POST.get('profile_image')
+        #
+        # if not name or not handle:
+        #     return HttpResponse(status=400)
+        #
+        # if request.user == User.objects.get(id=user_id):
+        #     return HttpResponse(status=401)
 
         return JsonResponse(status=200, data={
           "id": "1-sxxx-ajgleja1",
@@ -283,19 +282,19 @@ class UserApi(View):
         })
 
     def delete(self, request, user_id):   # 사용자 회원 탈퇴
-        if request.user == User.objects.get(id=user_id):
-            request.user.delete()
-            return HttpResponse(status=200)
+        # if request.user == User.objects.get(id=user_id):
+        #     request.user.delete()
+        return HttpResponse(status=200)
 
-        return HttpResponse(status=401)
+        # return HttpResponse(status=401)
 
 # noinspection PyMethodMayBeStatic
 class FollowApi(View):
     def get(self, request, user_id):      # 팔로잉 조회
-        if not request.user.is_authenticated:
-            return HttpResponse(stauts=401)
-        if not User.objects.filter(id=user_id).exists():
-            return HttpResponse(status=404)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(stauts=401)
+        # if not User.objects.filter(id=user_id).exists():
+        #     return HttpResponse(status=404)
 
         data = {
             "count": 2,
@@ -312,12 +311,12 @@ class FollowApi(View):
         return JsonResponse(status=200, data=data)
 
     def post(self, request, user_id, following):     # user_id가 followed_id를 팔로우 하기
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if not User.objects.filter(id=following).exists():
-            return HttpResponse(status=404)
-
-        FollowedUser.objects.create(user_id=user_id, followed_by=following)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if not User.objects.filter(id=following).exists():
+        #     return HttpResponse(status=404)
+        #
+        # FollowedUser.objects.create(user_id=user_id, followed_by=following)
         data = {"user": {
             "id": "1-sxxx-ajgleja1",
             "name": "John Doe",
@@ -336,21 +335,21 @@ class FollowApi(View):
         return JsonResponse(status=201, data=data)
 
     def delete(self, request, user_id, following):   # user_id가 followed_id를 팔로우 끊기
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if not User.objects.filter(id=following).exists():
-            return HttpResponse(status=404)
-
-        follow = FollowedUser.objects.get(user_id=user_id, followed_by=following)
-        follow.delete()
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if not User.objects.filter(id=following).exists():
+        #     return HttpResponse(status=404)
+        #
+        # follow = FollowedUser.objects.get(user_id=user_id, followed_by=following)
+        # follow.delete()
 
         return HttpResponse(status=200)
 
 def follower_list_api(request, user_id):  # 팔로워 조회
-    if not request.user.is_authenticated:
-        return HttpResponse(stauts=401)
-    if not User.objects.filter(id=user_id).exists():
-        return HttpResponse(status=404)
+    # if not request.user.is_authenticated:
+    #     return HttpResponse(stauts=401)
+    # if not User.objects.filter(id=user_id).exists():
+    #     return HttpResponse(status=404)
 
     data = {
         "count": 2,
@@ -369,8 +368,8 @@ def follower_list_api(request, user_id):  # 팔로워 조회
 # noinspection PyMethodMayBeStatic
 class SavedPostApi(View):
     def get(self, request, user_id):      # 저장한 게시물 조회
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
         # data = SavedPost.objects.filter(user_id=user_id)
         data = {
             "count": 1,
@@ -399,10 +398,10 @@ class SavedPostApi(View):
 
     def post(self, request, user_id, feed_id):  # 게시물 저장
         # SavedPost.objects.create(user_id=user_id, post_id=feed_id)
-        if not request.user.is_authenticated:
-            return HttpResponse(stauts=401)
-        if not Post.objects.filter(id=feed_id).exists():
-            return HttpResponse(status=404)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(stauts=401)
+        # if not Post.objects.filter(id=feed_id).exists():
+        #     return HttpResponse(status=404)
 
         data = {
             "id": "1",
@@ -464,10 +463,10 @@ class SavedPostApi(View):
 
     def delete(self, request, user_id, feed_id):   # 게시물 저장 취소
         # post = SavedPost.objects.get(user_id=user_id, post_id=feed_id)
-        if not request.user.is_authenticated:
-            return HttpResponse(stauts=401)
-        if not Post.objects.filter(id=feed_id).exists():
-            return HttpResponse(status=404)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(stauts=401)
+        # if not Post.objects.filter(id=feed_id).exists():
+        #     return HttpResponse(status=404)
         # post.delete()
 
         return HttpResponse(status=200)

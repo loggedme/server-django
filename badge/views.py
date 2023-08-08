@@ -9,15 +9,15 @@ from user.models import User
 
 class BadgeApi(View):
     def post(self, request):     # 뱃지 생성
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if request.user.type != "business":
-            return HttpResponse(status=403)
-
-        image = request.FILES.get('image')
-        description = request.POST.get('description')
-        if not image or not description:
-            return HttpResponse(status=400)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if request.user.type != "business":
+        #     return HttpResponse(status=403)
+        #
+        # image = request.FILES.get('image')
+        # description = request.POST.get('description')
+        # if not image or not description:
+        #     return HttpResponse(status=400)
         # Badge.objects.create(created_by=request.user.id, image=image, description=description)
 
         data = {
@@ -35,15 +35,15 @@ class BadgeApi(View):
         return JsonResponse(status=201, data=data)
 
     def put(self, request, badge_id):      # 뱃지 수정
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if request.user.type != "business":
-            return HttpResponse(status=403)
-
-        image = request.FILES.get('image')
-        description = request.POST.get('description')
-        if not image or not description:
-            return HttpResponse(status=400)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if request.user.type != "business":
+        #     return HttpResponse(status=403)
+        #
+        # image = request.FILES.get('image')
+        # description = request.POST.get('description')
+        # if not image or not description:
+        #     return HttpResponse(status=400)
 
         # Badge.objects.get(id=badge_id)
 
@@ -62,12 +62,12 @@ class BadgeApi(View):
         return JsonResponse(status=200, data=data)
 
     def delete(self, request, badge_id):   # 뱃지 삭제
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if request.user.type != "business":
-            return HttpResponse(status=403)
-        if not Badge.objects.filter(id=badge_id).exists():
-            return HttpResponse(status=404)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if request.user.type != "business":
+        #     return HttpResponse(status=403)
+        # if not Badge.objects.filter(id=badge_id).exists():
+        #     return HttpResponse(status=404)
         # badge = Badge.objects.get(id=badge_id)
         # badge.delete()
 
@@ -75,8 +75,8 @@ class BadgeApi(View):
 
 class UserBadgeApi(View):
     def get(self, request, user_id):      # 뱃지 리스트 조회
-        if not User.objects.filter(id=user_id):
-            return HttpResponse(status=404)
+        # if not User.objects.filter(id=user_id):
+        #     return HttpResponse(status=404)
         # badge = BadgedUser.objects.filter(user_id=user_id)
         data = {
             {
@@ -107,10 +107,10 @@ class UserBadgeApi(View):
         return JsonResponse(status=200, data=data)
 
     def post(self, request, user_id, badge_id):     # 뱃지 부여
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if not Badge.objects.filter(id=badge_id).exists():
-            return HttpResponse(status=404)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if not Badge.objects.filter(id=badge_id).exists():
+        #     return HttpResponse(status=404)
         # BadgedUser.objects.create(badge_id=badge_id, user_id=user_id)
         data = {
             "badge": {
@@ -136,10 +136,10 @@ class UserBadgeApi(View):
         return JsonResponse(status=201, data=data)
 
     def delete(self, request, user_id, badge_id):   # 뱃지 회수
-        if not request.user.is_authenticated:
-            return HttpResponse(status=401)
-        if not BadgedUser.objects.filter(user_id=badge_id, badge_id=badge_id).exists():
-            return HttpResponse(status=404)
+        # if not request.user.is_authenticated:
+        #     return HttpResponse(status=401)
+        # if not BadgedUser.objects.filter(user_id=badge_id, badge_id=badge_id).exists():
+        #     return HttpResponse(status=404)
         # badge = BadgedUser.objects.get(badge_id=badge_id, user_id=user_id)
         # badge.delete()
 
