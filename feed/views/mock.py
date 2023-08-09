@@ -78,7 +78,7 @@ def post_id(request: HttpRequest, post_id: str) -> HttpResponse:
 
 
 def post_id_like(request: HttpRequest, post_id: str) -> HttpResponse:
-    if request.method == 'PUT':
+    if request.method == 'POST':
         return JsonResponse(status=HTTPStatus.OK, data=MOCK_POST)
     if request.method == 'DELETE':
         return JsonResponse(status=HTTPStatus.OK, data=MOCK_POST)
