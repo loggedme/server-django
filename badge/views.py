@@ -79,7 +79,7 @@ class UserBadgeApi(View):
         #     return HttpResponse(status=404)
         # badge = BadgedUser.objects.filter(user_id=user_id)
         data = {
-            {
+            "users": [{
                 "id": "1",
                 "thumbnail": "http://...~barwr.??",
                 "description": "이 뱃지는 1992년 런던에서 시작하여...",
@@ -102,7 +102,7 @@ class UserBadgeApi(View):
                     "account_type": "business",
                     "thumbnail": "http://...~foooo.??"
                 }
-            }
+            }]
         }
         return JsonResponse(status=200, data=data)
 
