@@ -8,188 +8,217 @@ from badge.models import Badge, BadgedUser
 from feed.models import Post
 
 
-def user_detail_or_search(self, request, user_id):  # 사용자 조회 / query parameter 있으면 사용자 검색
-    type = request.GET.get('type')
-    query = request.GET.get('query')
-    recommend = request.GET.get('recommend')
-    if type and query:  # 검색
-        if type == "business":
-            data = {
-                "count": 1,
-                "is_countable": True,
-                "page": 1,
-                "per_page": 50,
-                "items": [
-                    {
-                        "id": "1-sxxx-ajgleja1",
-                        "name": "John Doe",
-                        "handle": "sxvn9wxx",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo.??"
-                    }
-                ]
-            }
-            return JsonResponse(status=200, data=data)
+def user_signup_or_search(request):  # POST 사용자 회원가입 / GET 사용자 검색 or 사용자 태그 추천
+    if request.method == "POST":
+        # email = request.POST.get('email')
+        # password = request.POST.get('password')
+        # name = request.POST.get('name')
+        # handle = request.POST.get('handle')
+        # account_type = request.POST.get('account_type')
+        #
+        # if not email or not password or not name or not handle or not account_type:
+        #     return HttpResponse(status=400)
+        #
+        # if User.objects.filter(email=email).exists() or User.objects.filter(handle=handle).exists():
+        #     return HttpResponse(status=409)
 
-        elif type == "personal":
-            data = {
-                "count": 1,
-                "is_countable": True,
-                "page": 1,
-                "per_page": 50,
-                "items": [
-                    {
-                        "id": "1-sxxx-ajgleja1",
-                        "name": "John Doe",
-                        "handle": "sxvn9wxx",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo.??"
-                    }
-                ]
-            }
-            return JsonResponse(status=200, data=data)
+        # user = User.objects.create_user(
+        #     email=email, password=password,
+        #     name=name, handle=handle, account_type=account_type
+        # )
 
-        return HttpResponse(status=400)
-    if recommend:   # 태그 추천
-        if type == "business":
-            data = {
-                "count": 5,
-                "is_countable": True,
-                "page": 1,
-                "per_page": 50,
-                "items": [
-                    {
-                        "id": "1-sxxx-ajgleja1",
-                        "name": "John Doe1",
-                        "handle": "sxvn9wxx1",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo1.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja2",
-                        "name": "John Doe2",
-                        "handle": "sxvn9wxx2",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo2.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja3",
-                        "name": "John Doe3",
-                        "handle": "sxvn9wxx3",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo3.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja4",
-                        "name": "John Doe4",
-                        "handle": "sxvn9wxx4",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo4.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja5",
-                        "name": "John Doe5",
-                        "handle": "sxvn9wxx5",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo5.??"
-                    }
-                ]
-            }
-            return JsonResponse(status=200, data=data)
-        elif type == "personal":
-            data = {
-                "count": 5,
-                "is_countable": True,
-                "page": 1,
-                "per_page": 50,
-                "items": [
-                    {
-                        "id": "1-sxxx-ajgleja1",
-                        "name": "John Doe1",
-                        "handle": "sxvn9wxx1",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo1.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja2",
-                        "name": "John Doe2",
-                        "handle": "sxvn9wxx2",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo2.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja3",
-                        "name": "John Doe3",
-                        "handle": "sxvn9wxx3",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo3.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja4",
-                        "name": "John Doe4",
-                        "handle": "sxvn9wxx4",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo4.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja5",
-                        "name": "John Doe5",
-                        "handle": "sxvn9wxx5",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo5.??"
-                    }
-                ]
-            }
-            return JsonResponse(status=200, data=data)
-        elif not type:
-            data = {
-                "count": 5,
-                "is_countable": True,
-                "page": 1,
-                "per_page": 50,
-                "items": [
-                    {
-                        "id": "1-sxxx-ajgleja1",
-                        "name": "John Doe1",
-                        "handle": "sxvn9wxx1",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo1.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja2",
-                        "name": "John Doe2",
-                        "handle": "sxvn9wxx2",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo2.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja3",
-                        "name": "John Doe3",
-                        "handle": "sxvn9wxx3",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo3.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja4",
-                        "name": "John Doe4",
-                        "handle": "sxvn9wxx4",
-                        "account_type": "business",
-                        "thumbnail": "http://...~foo4.??"
-                    },
-                    {
-                        "id": "1-sxxx-ajgleja5",
-                        "name": "John Doe5",
-                        "handle": "sxvn9wxx5",
-                        "account_type": "personal",
-                        "thumbnail": "http://...~foo5.??"
-                    }
-                ]
-            }
-            return JsonResponse(status=200, data=data)
-        return HttpResponse(status=400)
+        return JsonResponse(status=201, data={
+            "id": "1-sxxx-ajgleja1",
+            "name": "John Doe",
+            "handle": "sxvn9wxx",
+            "account_type": "personal",
+            "thumbnail": "http://...~foo.??"
+        })
+    else:
+        type = request.GET.get('type')
+        query = request.GET.get('query')
+        recommend = request.GET.get('recommend')
+        if type and query:  # 검색
+            if type == "business":
+                data = {
+                    "count": 1,
+                    "is_countable": True,
+                    "page": 1,
+                    "per_page": 50,
+                    "items": [
+                        {
+                            "id": "1-sxxx-ajgleja1",
+                            "name": "John Doe",
+                            "handle": "sxvn9wxx",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo.??"
+                        }
+                    ]
+                }
+                return JsonResponse(status=200, data=data)
 
-    # if User.objects.filter(id=user_id).exists():    # 사용자 조회
-    data = {
+            elif type == "personal":
+                data = {
+                    "count": 1,
+                    "is_countable": True,
+                    "page": 1,
+                    "per_page": 50,
+                    "items": [
+                        {
+                            "id": "1-sxxx-ajgleja1",
+                            "name": "John Doe",
+                            "handle": "sxvn9wxx",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo.??"
+                        }
+                    ]
+                }
+                return JsonResponse(status=200, data=data)
+
+            return HttpResponse(status=400)
+        if recommend:   # 태그 추천
+            if type == "business":
+                data = {
+                    "count": 5,
+                    "is_countable": True,
+                    "page": 1,
+                    "per_page": 50,
+                    "items": [
+                        {
+                            "id": "1-sxxx-ajgleja1",
+                            "name": "John Doe1",
+                            "handle": "sxvn9wxx1",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo1.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja2",
+                            "name": "John Doe2",
+                            "handle": "sxvn9wxx2",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo2.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja3",
+                            "name": "John Doe3",
+                            "handle": "sxvn9wxx3",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo3.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja4",
+                            "name": "John Doe4",
+                            "handle": "sxvn9wxx4",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo4.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja5",
+                            "name": "John Doe5",
+                            "handle": "sxvn9wxx5",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo5.??"
+                        }
+                    ]
+                }
+                return JsonResponse(status=200, data=data)
+            elif type == "personal":
+                data = {
+                    "count": 5,
+                    "is_countable": True,
+                    "page": 1,
+                    "per_page": 50,
+                    "items": [
+                        {
+                            "id": "1-sxxx-ajgleja1",
+                            "name": "John Doe1",
+                            "handle": "sxvn9wxx1",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo1.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja2",
+                            "name": "John Doe2",
+                            "handle": "sxvn9wxx2",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo2.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja3",
+                            "name": "John Doe3",
+                            "handle": "sxvn9wxx3",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo3.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja4",
+                            "name": "John Doe4",
+                            "handle": "sxvn9wxx4",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo4.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja5",
+                            "name": "John Doe5",
+                            "handle": "sxvn9wxx5",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo5.??"
+                        }
+                    ]
+                }
+                return JsonResponse(status=200, data=data)
+            elif not type:
+                data = {
+                    "count": 5,
+                    "is_countable": True,
+                    "page": 1,
+                    "per_page": 50,
+                    "items": [
+                        {
+                            "id": "1-sxxx-ajgleja1",
+                            "name": "John Doe1",
+                            "handle": "sxvn9wxx1",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo1.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja2",
+                            "name": "John Doe2",
+                            "handle": "sxvn9wxx2",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo2.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja3",
+                            "name": "John Doe3",
+                            "handle": "sxvn9wxx3",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo3.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja4",
+                            "name": "John Doe4",
+                            "handle": "sxvn9wxx4",
+                            "account_type": "business",
+                            "thumbnail": "http://...~foo4.??"
+                        },
+                        {
+                            "id": "1-sxxx-ajgleja5",
+                            "name": "John Doe5",
+                            "handle": "sxvn9wxx5",
+                            "account_type": "personal",
+                            "thumbnail": "http://...~foo5.??"
+                        }
+                    ]
+                }
+                return JsonResponse(status=200, data=data)
+            return HttpResponse(status=400)
+
+# noinspection PyMethodMayBeStatic
+class UserApi(View):
+    def get(self, request, user_id):
+        # if User.objects.filter(id=user_id).exists():    # 사용자 조회
+        data = {
             "user": {
                 "id": "1-sxxx-ajgleja1",
                 "name": "John Doe",
@@ -230,37 +259,9 @@ def user_detail_or_search(self, request, user_id):  # 사용자 조회 / query p
                 "follower": 172
             }
         }
-    return JsonResponse(status=200, data=data)
-    # else:
-    #     return HttpResponse(status=404)
-
-# noinspection PyMethodMayBeStatic
-class UserApi(View):
-    def post(self, request):     # 사용자 회원 가입
-        # email = request.POST.get('email')
-        # password = request.POST.get('password')
-        # name = request.POST.get('name')
-        # handle = request.POST.get('handle')
-        # account_type = request.POST.get('account_type')
-        #
-        # if not email or not password or not name or not handle or not account_type:
-        #     return HttpResponse(status=400)
-        #
-        # if User.objects.filter(email=email).exists() or User.objects.filter(handle=handle).exists():
-        #     return HttpResponse(status=409)
-
-        # user = User.objects.create_user(
-        #     email=email, password=password,
-        #     name=name, handle=handle, account_type=account_type
-        # )
-
-        return JsonResponse(status=201, data={
-          "id": "1-sxxx-ajgleja1",
-          "name": "John Doe",
-          "handle": "sxvn9wxx",
-          "account_type": "personal",
-          "thumbnail": "http://...~foo.??"
-        })
+        return JsonResponse(status=200, data=data)
+        # else:
+        #     return HttpResponse(status=404)
 
     def put(self, request, user_id):      # 사용자 정보 수정
         # name = request.POST.get('name')
