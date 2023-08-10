@@ -16,7 +16,10 @@ MOCK_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmF
 
 def auth_token(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
-        return HttpResponse(status=HTTPStatus.CREATED, content=MOCK_JWT)
+        return JsonResponse(status=HTTPStatus.CREATED, data={
+            "user": MOCK_USER,
+            "token": MOCK_JWT,
+        })
     if request.method == 'DELETE':
         return HttpResponse(status=HTTPStatus.OK)
     return HttpResponse(status=HTTPStatus.METHOD_NOT_ALLOWED)
