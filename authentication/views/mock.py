@@ -11,10 +11,12 @@ MOCK_USER = {
     "thumbnail": "http://...~foo.??"
 }
 
+MOCK_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c'
+
 
 def auth_token(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
-        return JsonResponse(status=HTTPStatus.CREATED, data=MOCK_USER)
+        return HttpResponse(status=HTTPStatus.CREATED, content=MOCK_JWT)
     if request.method == 'DELETE':
         return HttpResponse(status=HTTPStatus.OK)
     return HttpResponse(status=HTTPStatus.METHOD_NOT_ALLOWED)
