@@ -1,10 +1,11 @@
 from http import HTTPStatus
+from uuid import uuid4
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
 
 MOCK_USER = {
-    "id": "1-sxxx-ajgleja1",
+    "id": uuid4(),
     "name": "John Doe",
     "handle": "sxvn9wxx",
     "account_type": "personal",
@@ -16,7 +17,10 @@ MOCK_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmF
 
 def auth_token(request: HttpRequest) -> HttpResponse:
     if request.method == 'POST':
-        return HttpResponse(status=HTTPStatus.CREATED, content=MOCK_JWT)
+        return JsonResponse(status=HTTPStatus.CREATED, data={
+            "user": MOCK_USER,
+            "token": MOCK_JWT,
+        })
     if request.method == 'DELETE':
         return HttpResponse(status=HTTPStatus.OK)
     return HttpResponse(status=HTTPStatus.METHOD_NOT_ALLOWED)
