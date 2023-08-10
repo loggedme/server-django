@@ -1,10 +1,11 @@
 from http import HTTPStatus
+from uuid import uuid4
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 
 
 MOCK_USER = {
-    "id": "1-sxxx-ajgleja1",
+    "id": uuid4(),
     "name": "John Doe",
     "handle": "sxvn9wxx",
     "account_type": "personal",
