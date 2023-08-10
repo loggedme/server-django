@@ -47,7 +47,7 @@ MOCK_RESPONSE = {
             "feed": MOCK_SIMPLIFIED_POST,
             "comment": None,
             "badge": None,
-            "created_at": "2023-08-01T12:31:12:456"
+            "created_at": "2023-08-01T12:31:12.456"
         },
         {
             "type": "follow",
@@ -55,7 +55,7 @@ MOCK_RESPONSE = {
             "feed": None,
             "comment": None,
             "badge": None,
-            "created_at": "2023-08-01T12:31:12:456"
+            "created_at": "2023-08-01T12:31:12.456"
         },
         {
             "type": "badge",
@@ -63,7 +63,7 @@ MOCK_RESPONSE = {
             "feed": None,
             "comment": None,
             "badge": MOCK_BADGE,
-            "created_at": "2023-08-01T12:31:12:456"
+            "created_at": "2023-08-01T12:31:12.456"
         },
         {
             "type": "tag",
@@ -71,7 +71,7 @@ MOCK_RESPONSE = {
             "feed": MOCK_SIMPLIFIED_POST,
             "comment": None,
             "badge": None,
-            "created_at": "2023-08-01T12:31:12:456"
+            "created_at": "2023-08-01T12:31:12.456"
         },
         {
             "type": "comment",
@@ -79,7 +79,7 @@ MOCK_RESPONSE = {
             "feed": MOCK_SIMPLIFIED_POST,
             "comment": MOCK_COMMENT,
             "badge": None,
-            "created_at": "2023-08-01T12:31:12:456"
+            "created_at": "2023-08-01T12:31:12.456"
         }
     ]
 }
