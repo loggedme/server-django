@@ -1,10 +1,31 @@
 from rest_framework import serializers
 
-from feed.models import Post
+from feed.models import Post, Comment
 
 
 # TODO: 진짜 썸네일 이미지 URL 매핑하기
 CAT_IMAGE_URL = 'https://img.animalplanet.co.kr/news/2021/01/14/700/7xx53252im2gfs7i2ksr.jpg'
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = [
+            'id',
+            'content',
+            'author',
+            'created_at',
+        ]
+        read_only_fields = [
+            'id',
+            'author',
+            'created_at',
+        ]
+
+    def get_author(self, obj: Comment):
+        return obj.created_by.id
 
 
 class PostSerializer(serializers.ModelSerializer):
@@ -51,7 +72,7 @@ class PostSerializer(serializers.ModelSerializer):
         return [CAT_IMAGE_URL] * 3
 
     def get_comment(self, obj: Post):
-        return []
+        return CommentSerializer(obj.comment_set, many=True).data
 
     def get_likes(self, obj: Post):
         return 0
