@@ -13,3 +13,11 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class Comment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    content = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
