@@ -1,10 +1,40 @@
 from rest_framework import serializers
 
+from user.models import User
 from feed.models import Post, Comment
 
 
 # TODO: 진짜 썸네일 이미지 URL 매핑하기
 CAT_IMAGE_URL = 'https://img.animalplanet.co.kr/news/2021/01/14/700/7xx53252im2gfs7i2ksr.jpg'
+ACCOUNT_TYPE_MAPPINGS = {
+    1: 'personal',
+    2: 'business',
+}
+
+
+class UserSerializer(serializers.ModelSerializer):
+    account_type = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'name',
+            'handle',
+            'account_type',
+            'thumbnail',
+        ]
+        read_only_fields = [
+            'id',
+            'account_type',
+        ]
+
+    def get_account_type(self, obj: User):
+        return ACCOUNT_TYPE_MAPPINGS[obj.account_type]
+
+    def get_thumbnail(self, obj: User):
+        return CAT_IMAGE_URL
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -24,12 +54,13 @@ class CommentSerializer(serializers.ModelSerializer):
             'created_at',
         ]
 
-    def get_author(self, obj: Comment):
-        return obj.created_by.id
+    def get_author(self, obj: Post):
+        return UserSerializer(obj.created_by).data
 
 
 class PostSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
+    tagged_user = UserSerializer()
     image_urls = serializers.SerializerMethodField()
     comment = serializers.SerializerMethodField()
     likes = serializers.SerializerMethodField()
@@ -66,7 +97,7 @@ class PostSerializer(serializers.ModelSerializer):
         ]
 
     def get_author(self, obj: Post):
-        return obj.created_by.id
+        return UserSerializer(obj.created_by).data
 
     def get_image_urls(self, obj: Post):
         return [CAT_IMAGE_URL] * 3
