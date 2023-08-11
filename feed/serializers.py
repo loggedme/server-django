@@ -14,3 +14,9 @@ class PostSerializer(serializers.ModelSerializer):
             'modified_at',
             'created_by',
         ]
+        read_only_fields = [
+            'id',
+            'created_at',
+            'modified_at',
+            'created_by',
+        ]
