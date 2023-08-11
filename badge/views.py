@@ -77,13 +77,17 @@ class BadgeApi(View):
 
 class BadgeUserApi(View):
     def post(self, request: HttpRequest, badge_id):
-        data = json.loads(request.body)
-        if 'users' not in data:
+        try:
+            data = json.loads(request.body)
+            assert 'users' in data
+        except:
             return HttpResponse(status=400)
         return HttpResponse(status=201)
 
     def delete(self, request, badge_id):
-        data = json.loads(request.body)
-        if 'users' not in data:
+        try:
+            data = json.loads(request.body)
+            assert 'users' in data
+        except:
             return HttpResponse(status=400)
         return HttpResponse(status=200)
