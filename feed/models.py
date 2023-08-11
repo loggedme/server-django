@@ -1,3 +1,4 @@
+from uuid import uuid4
 from django.db import models
 
 from user.models import User
@@ -6,7 +7,7 @@ from user.models import User
 
 
 class Post(models.Model):
-    id = models.UUIDField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid4)
     content = models.CharField(max_length=2000)
     tagged_user = models.ForeignKey(User, null=True, on_delete=models.CASCADE, related_name='tagged_posts')
     created_at = models.DateTimeField(auto_now_add=True)
