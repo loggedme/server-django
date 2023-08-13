@@ -72,5 +72,13 @@ class FeedCommentView(APIView):
 
 
 class FeedCommentDetailView(APIView):
+    @permission_classes([IsAuthenticated])
+    @authentication_classes([JWTAuthentication])
     def delete(self, request: HttpRequest, post_id: UUID, comment_id: UUID):
-        pass
+        try:
+            comment = Comment.objects.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        if comment.created_by != request.user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        return Response(status=HTTPStatus.OK)
