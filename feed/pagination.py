@@ -16,3 +16,6 @@ class SimplePagination(PageNumberPagination):
             'per_page': self.page.paginator.per_page,
             'items': data,
         })
+
+
+simple_pagination = SimplePagination()
