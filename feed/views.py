@@ -1,14 +1,16 @@
-from typing import Any
+from http import HTTPStatus
 from uuid import UUID
 
 from django.http import HttpRequest
-from rest_framework.decorators import permission_classes
+from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from feed.models import Post
 from feed.pagination import simple_pagination
-from feed.serializers import PostSerializer
+from feed.models import *
+from feed.serializers import *
 
 
 class FeedView(APIView):
@@ -47,8 +49,20 @@ class FeedCommentView(APIView):
     def get(self, request: HttpRequest, post_id: UUID):
         pass
 
+    @permission_classes([IsAuthenticated])
+    @authentication_classes([JWTAuthentication])
     def post(self, request: HttpRequest, post_id: UUID):
-        pass
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        if 'content' not in request.data:
+            return Response(status=HTTPStatus.BAD_REQUEST)
+        comment = post.comment_set.create(
+            content=request.data['content'],
+            created_by=request.user,
+        )
+        return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
 
 
 class FeedCommentDetailView(APIView):
