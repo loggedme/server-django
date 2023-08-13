@@ -26,7 +26,7 @@ class PostImage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
     order = models.IntegerField()
-    data_url = models.ImageField()
+    image = models.FileField(upload_to='post/images')
 
 
 class LikedPost(models.Model):
