@@ -27,9 +27,16 @@ class FeedView(APIView):
         pass
 
 
+@permission_classes([IsAuthenticatedOrReadOnly])
+@authentication_classes([JWTAuthentication])
 class FeedDetailView(APIView):
     def get(self, request: HttpRequest, post_id: UUID):
-        pass
+        try:
+            entity = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        serializer = PostSerializer(instance=entity)
+        return Response(serializer.data, status=HTTPStatus.OK)
 
     def put(self, request: HttpRequest, post_id: UUID):
         pass
