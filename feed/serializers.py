@@ -95,7 +95,7 @@ class PostSerializer(serializers.ModelSerializer):
         return CommentSerializer(obj.comment_set, many=True).data
 
     def get_likes(self, obj: Post):
-        return 0
+        return obj.likedpost_set.count()
 
     def get_is_edited(self, obj: Post):
         return obj.created_at != obj.modified_at
