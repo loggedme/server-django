@@ -27,6 +27,11 @@ class LikedPost(models.Model):
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
 
 
+class SavedPost(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+
 class Comment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
     post = models.ForeignKey(Post, on_delete=models.CASCADE)
