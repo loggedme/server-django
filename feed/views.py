@@ -38,11 +38,17 @@ class FeedDetailView(APIView):
 
 
 class FeedLikeView(APIView):
+    @permission_classes([IsAuthenticated])
+    @authentication_classes([JWTAuthentication])
     def post(self, request: HttpRequest, post_id: UUID):
-        pass
+        LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
+        return Response(status=HTTPStatus.CREATED)
 
+    @permission_classes([IsAuthenticated])
+    @authentication_classes([JWTAuthentication])
     def delete(self, request: HttpRequest, post_id: UUID):
-        pass
+        LikedPost.objects.get(post_id=post_id, user_id=request.user.id).delete()
+        return Response(status=HTTPStatus.OK)
 
 
 class FeedCommentView(APIView):
