@@ -4,7 +4,7 @@ from uuid import UUID
 from django.http import HttpRequest
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -13,8 +13,9 @@ from feed.models import *
 from feed.serializers import *
 
 
+@permission_classes([IsAuthenticatedOrReadOnly])
+@authentication_classes([JWTAuthentication])
 class FeedView(APIView):
-    @permission_classes([AllowAny])
     def get(self, request: HttpRequest):
         # TODO: Support Query parameters
         queryset = Post.objects.all()
@@ -37,20 +38,20 @@ class FeedDetailView(APIView):
         pass
 
 
+@permission_classes([IsAuthenticated])
+@authentication_classes([JWTAuthentication])
 class FeedLikeView(APIView):
-    @permission_classes([IsAuthenticated])
-    @authentication_classes([JWTAuthentication])
     def post(self, request: HttpRequest, post_id: UUID):
         LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
         return Response(status=HTTPStatus.CREATED)
 
-    @permission_classes([IsAuthenticated])
-    @authentication_classes([JWTAuthentication])
     def delete(self, request: HttpRequest, post_id: UUID):
         LikedPost.objects.get(post_id=post_id, user_id=request.user.id).delete()
         return Response(status=HTTPStatus.OK)
 
 
+@permission_classes([IsAuthenticatedOrReadOnly])
+@authentication_classes([JWTAuthentication])
 class FeedCommentView(APIView):
     @permission_classes([AllowAny])
     def get(self, request: HttpRequest, post_id: UUID):
@@ -66,8 +67,6 @@ class FeedCommentView(APIView):
         )
         return simple_pagination.get_paginated_response(serializer.data)
 
-    @permission_classes([IsAuthenticated])
-    @authentication_classes([JWTAuthentication])
     def post(self, request: HttpRequest, post_id: UUID):
         try:
             post = Post.objects.get(id=post_id)
@@ -82,9 +81,9 @@ class FeedCommentView(APIView):
         return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
 
 
+@permission_classes([IsAuthenticated])
+@authentication_classes([JWTAuthentication])
 class FeedCommentDetailView(APIView):
-    @permission_classes([IsAuthenticated])
-    @authentication_classes([JWTAuthentication])
     def delete(self, request: HttpRequest, post_id: UUID, comment_id: UUID):
         try:
             comment = Comment.objects.get(id=comment_id)
