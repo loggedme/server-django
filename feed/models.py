@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from uuid import uuid4
 from django.db import models
 
@@ -13,6 +15,11 @@ class Post(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    comment_set: models.QuerySet[Comment]
+    savedpost_set: models.QuerySet[SavedPost]
+    likedpost_set: models.QuerySet[LikedPost]
+    postimage_set: models.QuerySet[PostImage]
 
 
 class PostImage(models.Model):
@@ -43,6 +50,8 @@ class Comment(models.Model):
 class HashTag(models.Model):
     id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200, blank=False)
+
+    hashtaggedpost_set: models.QuerySet[HashTaggedPost]
 
 
 class HashTaggedPost(models.Model):
