@@ -52,8 +52,19 @@ class FeedLikeView(APIView):
 
 
 class FeedCommentView(APIView):
+    @permission_classes([AllowAny])
     def get(self, request: HttpRequest, post_id: UUID):
-        pass
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        queryset = post.comment_set.all()
+        page = simple_pagination.paginate_queryset(queryset, request, view=self)
+        serializer = CommentSerializer(
+            instance=page,
+            many=True,
+        )
+        return simple_pagination.get_paginated_response(serializer.data)
 
     @permission_classes([IsAuthenticated])
     @authentication_classes([JWTAuthentication])
