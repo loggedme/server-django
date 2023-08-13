@@ -12,6 +12,17 @@ ACCOUNT_TYPE_MAPPINGS = {
 }
 
 
+class ReadOnlyModelSerializer(serializers.ModelSerializer):
+    def create(self, validated_data):
+        raise NotImplementedError()
+
+    def update(self, validated_data):
+        raise NotImplementedError()
+
+    def save(self, **kwargs):
+        raise NotImplementedError()
+
+
 class UserSerializer(serializers.ModelSerializer):
     account_type = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
