@@ -70,10 +70,15 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.SerializerMethodField()
+    author = UserSerializer(
+        source='created_by',
+    )
     tagged_user = UserSerializer()
     image_urls = serializers.SerializerMethodField()
-    comment = serializers.SerializerMethodField()
+    comment = CommentSerializer(
+        source='comment_set',
+        many=True,
+    )
     likes = serializers.SerializerMethodField()
     is_edited = serializers.SerializerMethodField()
     is_liked = serializers.SerializerMethodField()
@@ -81,34 +86,7 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Post
-        fields = [
-            'id',
-            'author',
-            'tagged_user',
-            'content',
-            'image_urls',
-            'comment',
-            'likes',
-            'created_at',
-            'modified_at',
-            'is_liked',
-            'is_saved',
-            'is_edited',
-        ]
-        read_only_fields = [
-            'id',
-            'author',
-            'comment',
-            'likes',
-            'created_at',
-            'modified_at',
-            'is_liked',
-            'is_saved',
-            'is_edited',
-        ]
-
-    def get_author(self, obj: Post):
-        return UserSerializer(obj.created_by).data
+        exclude = ['created_by']
 
     def get_image_urls(self, obj: Post):
         return [CAT_IMAGE_URL] * 3
