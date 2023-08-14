@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from uuid import UUID
 
+from django.db import transaction
 from django.http import HttpRequest
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.views import APIView
@@ -8,6 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticate
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from user.models import User, UserType
 from feed.pagination import simple_pagination
 from feed.models import *
 from feed.serializers import *
@@ -24,7 +26,40 @@ class FeedView(APIView):
         return simple_pagination.get_paginated_response(serializer.data)
 
     def post(self, request: HttpRequest):
-        pass
+        # TODO: 누락된 키가 있을 경우 예외처리
+        user: User = request.user
+        images = request.FILES.getlist('images')
+        with transaction.atomic():
+            post = Post()
+            post.content = request.data['content']
+            post.created_by = user
+            if user.account_type == UserType.PERSONAL:
+                post.tagged_user = self.get_user_by_id_or_handle(request.data['tagged_user'])
+            elif user.account_type == UserType.BUSINESS:
+                post.tagged_user = None
+            else:
+                raise Exception()
+            post.save()
+            for order, image in enumerate(images):
+                postimage = PostImage()
+                postimage.post = post
+                postimage.image = image
+                postimage.order = order
+                postimage.save()
+        serializer = PostSerializer(user=request.user, instance=post)
+        return Response(serializer.data, status=HTTPStatus.CREATED)
+
+    def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
+        if self.is_uuid(id_or_handle):
+            return User.objects.get(id=UUID(id_or_handle))
+        return User.objects.get(handle=id_or_handle)
+
+    def is_uuid(self, uuid_to_test: str) -> bool:
+        try:
+            uuid_obj = UUID(uuid_to_test)
+        except ValueError:
+            return False
+        return str(uuid_obj) == uuid_to_test
 
 
 @permission_classes([IsAuthenticatedOrReadOnly])
