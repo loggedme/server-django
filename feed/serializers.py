@@ -1,15 +1,11 @@
 from rest_framework import serializers
 
-from user.models import User
+from user.serializers import UserSerializer
 from feed.models import Post, Comment
 
 
 # TODO: 진짜 썸네일 이미지 URL 매핑하기
 CAT_IMAGE_URL = 'https://img.animalplanet.co.kr/news/2021/01/14/700/7xx53252im2gfs7i2ksr.jpg'
-ACCOUNT_TYPE_MAPPINGS = {
-    1: 'personal',
-    2: 'business',
-}
 
 
 class ReadOnlyModelSerializer(serializers.ModelSerializer):
@@ -21,31 +17,6 @@ class ReadOnlyModelSerializer(serializers.ModelSerializer):
 
     def save(self, **kwargs):
         raise NotImplementedError()
-
-
-class UserSerializer(serializers.ModelSerializer):
-    account_type = serializers.SerializerMethodField()
-    thumbnail = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = [
-            'id',
-            'name',
-            'handle',
-            'account_type',
-            'thumbnail',
-        ]
-        read_only_fields = [
-            'id',
-            'account_type',
-        ]
-
-    def get_account_type(self, obj: User):
-        return ACCOUNT_TYPE_MAPPINGS[obj.account_type]
-
-    def get_thumbnail(self, obj: User):
-        return CAT_IMAGE_URL
 
 
 class CommentSerializer(serializers.ModelSerializer):
