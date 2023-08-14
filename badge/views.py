@@ -49,7 +49,7 @@ class BadgeApi(View):
         }
         return JsonResponse(status=201, data=data)
 
-    def put(self, request, badge_id):      # 뱃지 수정
+    def patch(self, request, badge_id):      # 뱃지 수정
         # if not request.user.is_authenticated:
         #     return HttpResponse(status=401)
         # if request.user.type != "business":
