@@ -5,13 +5,14 @@ from django.db.models import Q
 from django.db.models import Count
 
 from .models import User, FollowedUser
-from badge.models import Badge, BadgedUser
-from feed.models import Post
+# from badge.models import Badge, BadgedUser
+from feed.models import Post, SavedPost
 from .serializers import UserSerializer
-from badge.serializers import BadgeSerializer
+# from badge.serializers import BadgeSerializer
+from feed.serializers import PostSerializer
+from feed.pagination import SimplePagination
 
-
-from rest_framework import generics, permissions, mixins
+from rest_framework import generics, permissions
 from rest_framework.pagination import PageNumberPagination
 
 class UserPagenation(PageNumberPagination):
@@ -41,7 +42,7 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         serializer = UserSerializer(user)
         data = {
             "user": serializer.data,
-            "badge": {"items": BadgeSerializer(badge, many=True).data}
+            # "badge": {"items": BadgeSerializer(badge, many=True).data}
         }
         return Response(data, status=HTTPStatus.OK)
 
@@ -97,8 +98,6 @@ class UserSignupSearchView(generics.ListCreateAPIView):
         
         return users
         
-
-
 class FollowingListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
@@ -122,7 +121,7 @@ class FollowerListView(generics.ListAPIView):
         return users
 
 class FollowCreateDeleteView(generics.GenericAPIView):
-    # permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, user_id, following):
         if not User.objects.filter(id=user_id).exists() or not User.objects.filter(id=user_id).exists():
@@ -152,57 +151,48 @@ class FollowCreateDeleteView(generics.GenericAPIView):
         return Response(status=HTTPStatus.OK)
 
 class SavedPostListView(generics.ListAPIView):
-    serializer_class = FeedSerializer
+    serializer_class = PostSerializer
+    pagination_class = SimplePagination
     
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        post_ids = SavedPost.objects.filter(user_id=user_id).values_list('post_id', flat=True)
-        posts = User.objects.filter(id__in=post_ids)
+        user = User.objects.get(id=user_id)
+        post_ids = SavedPost.objects.filter(user=user).values_list('post_id', flat=True)
+        posts = Post.objects.filter(id__in=post_ids)
         return posts
     
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
-
+        user_id = self.kwargs['user_id']
+        user = User.objects.get(id=user_id)
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.get_serializer(user=user, instance=page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
-        
-        data = {
-            "count": queryset.count(),
-            "is_countable": True,
-            "page": 1,
-            "per_page": 50,
-            "items": serializer.data
-        }
-        return Response(data)
+        serializer = self.get_serializer(user=user, instance=queryset, many=True)
+        return Response(serializer.data)
 
 class SavedPostCreateDeleteView(generics.GenericAPIView):
     def post(self, request, user_id, feed_id):
-        if not User.objects.filter(id=user_id).exists() or not Feed.objects.filter(id=feed_id).exists():
+        if not User.objects.filter(id=user_id).exists() or not Post.objects.filter(id=feed_id).exists():
             return Response(status=HTTPStatus.NOT_FOUND)
-        if SavedPost.objects.filter(user_id=user_id, post_id_id=feed_id).exists():
+        if SavedPost.objects.filter(user_id=user_id, post_id=feed_id).exists():
             return Response(status=HTTPStatus.CONFLICT)
-        saved_post = SavedPost.objects.create(user_id=user_id, feed_id=feed_id)
+        saved_post = SavedPost.objects.create(user_id=user_id, post_id=feed_id)
         saved_post.save()
-
-        serializer = FeedSerializer(saved_post)
-        data = {
-            "is_saved": True,
-            "post": serializer.data
-        }
-        
-        return Response(data, status=HTTPStatus.CREATED)
+        user = saved_post.user
+        post = saved_post.post
+        serializer = PostSerializer(user=user, instance=post)
+        return Response(serializer.data, status=HTTPStatus.CREATED)
     
     def delete(self, request, user_id, feed_id):
-        if not User.objects.filter(id=user_id).exists() or not Feed.objects.filter(id=feed_id).exists():
+        if not User.objects.filter(id=user_id).exists() or not Post.objects.filter(id=feed_id).exists():
             return Response(status=HTTPStatus.NOT_FOUND)
-        if SavedPost.objects.filter(user_id=user_id, post_id_id=feed_id).exists():
+        if not SavedPost.objects.filter(user_id=user_id, post_id=feed_id).exists():
             return Response(status=HTTPStatus.CONFLICT)
         
-        saved_post = SavedPost.objects.get(user_id=user_id, feed_id=feed_id)
+        saved_post = SavedPost.objects.get(user_id=user_id, post_id=feed_id)
         saved_post.delete()
         
         return Response(status=HTTPStatus.OK)
