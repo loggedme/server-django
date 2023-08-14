@@ -10,6 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'password', 'username', 'email', 'name', 'handle', 'account_type', 'profile_image', 'thumbnail']
         extra_kwargs = {
             'id': {'read_only': True},
+            'email': {'write_only': True},
             'password': {'write_only': True},
             'username': {'write_only': True},
             'profile_image': {'required': False, 'write_only': True}
@@ -19,5 +20,6 @@ class UserSerializer(serializers.ModelSerializer):
         return User.objects.create_user(**validated_data)
     
     def get_thumbnail(self, obj):
-        return None # profile_image의 url
-    
+        if obj.profile_image:
+            return obj.profile_image.url
+        return None 
