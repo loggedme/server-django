@@ -22,8 +22,17 @@ from feed.serializers import *
 @authentication_classes([JWTAuthentication])
 class FeedView(APIView):
     def get(self, request: HttpRequest):
-        # TODO: Support Query parameters
         queryset = Post.objects.all()
+        if 'type' in request.GET:
+            if request.GET['type'] == 'personal':
+                queryset = queryset.filter(created_by__account_type=UserType.PERSONAL)
+            elif request.GET['type'] == 'business':
+                queryset = queryset.filter(created_by__account_type=UserType.BUSINESS)
+            else:
+                return Response(
+                    data={'type': 'wrong type. should be one of (personal, business)'},
+                    status=HTTPStatus.BAD_REQUEST,
+                )
         page = simple_pagination.paginate_queryset(queryset, request, view=self)
         serializer = PostSerializer(user=request.user, instance=page, many=True)
         return simple_pagination.get_paginated_response(serializer.data)
