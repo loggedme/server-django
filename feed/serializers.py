@@ -1,7 +1,9 @@
+from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework import serializers
 
+from user.models import User
 from user.serializers import UserSerializer
-from feed.models import Post, Comment
+from feed.models import *
 
 
 # TODO: 진짜 썸네일 이미지 URL 매핑하기
@@ -40,11 +42,14 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         exclude = ['created_by']
 
-    def get_image_urls(self, obj: Post):
-        return [CAT_IMAGE_URL] * 3
+    user: AbstractBaseUser | AnonymousUser
 
-    def get_comment(self, obj: Post):
-        return CommentSerializer(obj.comment_set, many=True).data
+    def __init__(self, user: AbstractBaseUser | AnonymousUser, instance=None, data=..., **kwargs):
+        super().__init__(instance, data, **kwargs)
+        self.user = user
+
+    def get_image_urls(self, obj: Post):
+        return [o.image.url for o in obj.postimage_set.order_by('order')]
 
     def get_likes(self, obj: Post):
         return obj.likedpost_set.count()
@@ -53,7 +58,21 @@ class PostSerializer(serializers.ModelSerializer):
         return obj.created_at != obj.modified_at
 
     def get_is_liked(self, obj: Post):
-        return False
+        return not self.user.is_anonymous and self.is_liked_by(obj, self.user)
+
+    def is_liked_by(self, post: Post, user: User) -> bool:
+        try:
+            post.likedpost_set.get(user=user)
+        except LikedPost.DoesNotExist:
+            return False
+        return True
 
     def get_is_saved(self, obj: Post):
-        return False
+        return not self.user.is_anonymous and self.is_saved_by(obj, self.user)
+
+    def is_saved_by(self, post: Post, user: User) -> bool:
+        try:
+            post.savedpost_set.get(user=user)
+        except SavedPost.DoesNotExist:
+            return False
+        return True

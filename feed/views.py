@@ -20,7 +20,7 @@ class FeedView(APIView):
         # TODO: Support Query parameters
         queryset = Post.objects.all()
         page = simple_pagination.paginate_queryset(queryset, request, view=self)
-        serializer = PostSerializer(instance=page, many=True)
+        serializer = PostSerializer(user=request.user, instance=page, many=True)
         return simple_pagination.get_paginated_response(serializer.data)
 
     def post(self, request: HttpRequest):
