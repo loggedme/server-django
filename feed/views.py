@@ -79,8 +79,12 @@ class FeedDetailView(APIView):
     def put(self, request: HttpRequest, post_id: UUID):
         pass
 
-    def delete(self, request: HttpRequest, post_id: UUID):
-        pass
+    def delete(self, request: HttpRequest, post_id: UUID, **kwargs):
+        post = get_object_or_404(Post, id=post_id)
+        if post.created_by != request.user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        post.delete()
+        return Response(status=HTTPStatus.OK)
 
 
 @permission_classes([IsAuthenticated])
