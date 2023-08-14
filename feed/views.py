@@ -1,5 +1,7 @@
+import json
 from http import HTTPStatus
 from uuid import UUID
+from typing import List
 
 from django.db import transaction
 from django.http import HttpRequest
@@ -77,8 +79,35 @@ class FeedDetailView(APIView):
         serializer = PostSerializer(user=request.user, instance=post)
         return Response(serializer.data, status=HTTPStatus.OK)
 
-    def put(self, request: HttpRequest, post_id: UUID):
-        pass
+    def put(self, request: HttpRequest, post_id: UUID, **kwargs):
+        post = get_object_or_404(Post, id=post_id)
+        user: User = request.user
+        data = json.loads(request.body)
+        if post.created_by != user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        with transaction.atomic():
+            post.content = data['content']
+            if user.account_type == UserType.PERSONAL:
+                try:
+                    post.tagged_user = self.get_user_by_id_or_handle(data['tagged_user'])
+                except User.DoesNotExist as e:
+                    return Response(data={'tagged_user': e.args}, status=HTTPStatus.BAD_REQUEST)
+            elif user.account_type == UserType.BUSINESS:
+                post.tagged_user = None
+            else:
+                raise Exception()
+            post.save()
+            # TODO: 새로운 이미지 추가
+            image_urls: List[str] = data['image_urls']
+            for postimage in post.postimage_set.all():
+                try:
+                    postimage.order = image_urls.index(postimage.image.url)+1
+                    postimage.save()
+                except ValueError:
+                    print(postimage.image.url, 'not found from', image_urls)
+                    postimage.delete()
+        serializer = PostSerializer(user=request.user, instance=post)
+        return Response(serializer.data, status=HTTPStatus.OK)
 
     def delete(self, request: HttpRequest, post_id: UUID, **kwargs):
         post = get_object_or_404(Post, id=post_id)
@@ -86,6 +115,21 @@ class FeedDetailView(APIView):
             return Response(status=HTTPStatus.FORBIDDEN)
         post.delete()
         return Response(status=HTTPStatus.OK)
+
+    def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
+        kwargs = {}
+        if self.is_uuid(id_or_handle):
+            kwargs['id'] = UUID(id_or_handle)
+        else:
+            kwargs['handle'] = id_or_handle
+        return User.objects.get(**kwargs)
+
+    def is_uuid(self, uuid_to_test: str) -> bool:
+        try:
+            uuid_obj = UUID(uuid_to_test)
+        except ValueError:
+            return False
+        return str(uuid_obj) == uuid_to_test
 
 
 @permission_classes([IsAuthenticated])
