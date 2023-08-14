@@ -71,12 +71,9 @@ class FeedView(APIView):
 @permission_classes([IsAuthenticatedOrReadOnly])
 @authentication_classes([JWTAuthentication])
 class FeedDetailView(APIView):
-    def get(self, request: HttpRequest, post_id: UUID):
-        try:
-            entity = Post.objects.get(id=post_id)
-        except Post.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        serializer = PostSerializer(instance=entity)
+    def get(self, request: HttpRequest, post_id: UUID, **kwargs):
+        post = get_object_or_404(Post, id=post_id)
+        serializer = PostSerializer(user=request.user, instance=post)
         return Response(serializer.data, status=HTTPStatus.OK)
 
     def put(self, request: HttpRequest, post_id: UUID):
