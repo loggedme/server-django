@@ -33,6 +33,10 @@ class FeedView(APIView):
                     data={'type': 'wrong type. should be one of (personal, business)'},
                     status=HTTPStatus.BAD_REQUEST,
                 )
+        if 'following' in request.GET:
+            if request.user.is_anonymous:
+                return Response(status=HTTPStatus.UNAUTHORIZED)
+            # TODO: 내가 팔로우 하는 사람의 피드만 보기
         if 'trending' in request.GET:
             # TODO: 추천 알고리즘 만들기
             queryset = queryset.order_by('-likedpost')
