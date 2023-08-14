@@ -3,6 +3,8 @@ from http import HTTPStatus
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login, logout
 
+from rest_framework import generics
+
 from .models import User, FollowedUser
 from badge.models import Badge, BadgedUser
 from feed.models import Post
@@ -263,7 +265,7 @@ class UserApi(View):
         # else:
         #     return HttpResponse(status=404)
 
-    def put(self, request, user_id):      # 사용자 정보 수정
+    def patch(self, request, user_id):      # 사용자 정보 수정
         # name = request.POST.get('name')
         # handle = request.POST.get('handle')
         # profile_image = request.POST.get('profile_image')
@@ -471,4 +473,10 @@ class SavedPostApi(View):
         # post.delete()
 
         return HttpResponse(status=200)
+
+def get_user_image(request, user_id):
+    if User.objects.filter(id=user_id).exists:
+        image_url = User.objects.get(id=user_id).image.url
+        return JsonResponse({'image_url': image_url})
+    return HttpResponse(status=404)
 
