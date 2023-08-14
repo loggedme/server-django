@@ -2,26 +2,24 @@ from rest_framework import serializers
 
 from user.models import User
 
-
-ACCOUNT_TYPE_MAPPINGS = {
-    1: 'personal',
-    2: 'business',
-}
-
-
 class UserSerializer(serializers.ModelSerializer):
-    thumbnail = serializers.ImageField(source='profile_image')
-    account_type = serializers.SerializerMethodField()
+    thumbnail = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = [
-            'id',
-            'name',
-            'handle',
-            'account_type',
-            'thumbnail',
-        ]
-
-    def get_account_type(self, obj: User):
-        return ACCOUNT_TYPE_MAPPINGS[obj.account_type]
+        fields = ['id', 'password', 'username', 'email', 'name', 'handle', 'account_type', 'profile_image', 'thumbnail']
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'email': {'write_only': True},
+            'password': {'write_only': True},
+            'username': {'write_only': True},
+            'profile_image': {'required': False, 'write_only': True}
+        }
+        
+    def create(self, validated_data):
+        return User.objects.create_user(**validated_data)
+    
+    def get_thumbnail(self, obj):
+        if obj.profile_image:
+            return obj.profile_image.url
+        return None 
