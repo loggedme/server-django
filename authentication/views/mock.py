@@ -2,6 +2,9 @@ from http import HTTPStatus
 from uuid import uuid4
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from user.models import User
 
 
 MOCK_USER = {
@@ -16,10 +19,18 @@ MOCK_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmF
 
 
 def auth_token(request: HttpRequest) -> HttpResponse:
+    user = User.objects.first()
+    token = RefreshToken.for_user(user)
     if request.method == 'POST':
         return JsonResponse(status=HTTPStatus.CREATED, data={
-            "user": MOCK_USER,
-            "token": MOCK_JWT,
+            'user': {
+                "id": user.id,
+                "handle": user.handle,
+                "name": user.name,
+                "account_type": [None, 'personal', 'business'][user.account_type],
+                "thumbnail": "http://...~foo.??"
+            },
+            "token": str(token.access_token),
         })
     if request.method == 'DELETE':
         return HttpResponse(status=HTTPStatus.OK)

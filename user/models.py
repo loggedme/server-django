@@ -1,6 +1,5 @@
 from django.db import models
-
-# Create your models here.
+from django.contrib.auth.models import AbstractUser
 
 
 class UserType(models.IntegerChoices):
@@ -8,16 +7,14 @@ class UserType(models.IntegerChoices):
     BUSINESS = 2, 'Business'
 
 
-class User(models.Model):
+class User(AbstractUser):
     id = models.UUIDField(primary_key=True)
-    email = models.EmailField(unique=True, max_length=64)
-    password = models.CharField(max_length=16, blank=False)
+    email = models.EmailField(unique=True, null=False, blank=False)
     name = models.CharField(max_length=16, blank=False)
     handle = models.CharField(unique=True, max_length=16, blank=False)
     account_type = models.IntegerField(choices=UserType.choices)
-    profile_image = models.Field()
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_logged_in = models.DateTimeField(null=True)
+    profile_image =  models.ImageField(upload_to='user_profile_image/')
+
 
 class FollowedUser(models.Model):
     user_id = models.ForeignKey(User, related_name='followed_user', on_delete=models.CASCADE)         # 팔로우 받는 사람
