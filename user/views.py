@@ -30,6 +30,7 @@ class UserPagenation(PageNumberPagination):
 
 class UserDetailUpdateDeleteView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = UserSerializer
 
     def get_object(self, user_id):
         try:
@@ -121,6 +122,7 @@ class FollowerListView(generics.ListAPIView):
         return users
 
 class FollowCreateDeleteView(generics.GenericAPIView):
+    serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     
     def post(self, request, user_id, following):
@@ -174,6 +176,8 @@ class SavedPostListView(generics.ListAPIView):
         return Response(serializer.data)
 
 class SavedPostCreateDeleteView(generics.GenericAPIView):
+    serializer_class = UserSerializer
+    
     def post(self, request, user_id, feed_id):
         if not User.objects.filter(id=user_id).exists() or not Post.objects.filter(id=feed_id).exists():
             return Response(status=HTTPStatus.NOT_FOUND)
