@@ -33,6 +33,9 @@ class FeedView(APIView):
                     data={'type': 'wrong type. should be one of (personal, business)'},
                     status=HTTPStatus.BAD_REQUEST,
                 )
+        if 'trending' in request.GET:
+            # TODO: 추천 알고리즘 만들기
+            queryset = queryset.order_by('-likedpost')
         page = simple_pagination.paginate_queryset(queryset, request, view=self)
         serializer = PostSerializer(user=request.user, instance=page, many=True)
         return simple_pagination.get_paginated_response(serializer.data)
