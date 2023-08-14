@@ -27,7 +27,9 @@ class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(
         source='created_by',
     )
-    tagged_user = UserSerializer()
+    tagged_user = UserSerializer(
+        allow_null=True,
+    )
     image_urls = serializers.SerializerMethodField()
     comment = CommentSerializer(
         source='comment_set',
@@ -44,8 +46,11 @@ class PostSerializer(serializers.ModelSerializer):
 
     user: AbstractBaseUser | AnonymousUser
 
-    def __init__(self, user: AbstractBaseUser | AnonymousUser, instance=None, data=..., **kwargs):
-        super().__init__(instance, data, **kwargs)
+    def __init__(self, user: AbstractBaseUser | AnonymousUser, instance=None, data=None, **kwargs):
+        if data is None:
+            super().__init__(instance, **kwargs)
+        else:
+            super().__init__(data=data, **kwargs)
         self.user = user
 
     def get_image_urls(self, obj: Post):
