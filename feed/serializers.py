@@ -20,7 +20,7 @@ class ReadOnlyModelSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.SerializerMethodField()
+    author = UserSerializer(source="created_by")
 
     class Meta:
         model = Comment
@@ -30,14 +30,6 @@ class CommentSerializer(serializers.ModelSerializer):
             'author',
             'created_at',
         ]
-        read_only_fields = [
-            'id',
-            'author',
-            'created_at',
-        ]
-
-    def get_author(self, obj: Post):
-        return UserSerializer(obj.created_by).data
 
 
 class PostSerializer(serializers.ModelSerializer):
