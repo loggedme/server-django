@@ -8,17 +8,6 @@ from feed.models import Post, Comment
 CAT_IMAGE_URL = 'https://img.animalplanet.co.kr/news/2021/01/14/700/7xx53252im2gfs7i2ksr.jpg'
 
 
-class ReadOnlyModelSerializer(serializers.ModelSerializer):
-    def create(self, validated_data):
-        raise NotImplementedError()
-
-    def update(self, validated_data):
-        raise NotImplementedError()
-
-    def save(self, **kwargs):
-        raise NotImplementedError()
-
-
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(source="created_by")
 
