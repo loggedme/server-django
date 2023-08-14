@@ -34,7 +34,10 @@ class FeedView(APIView):
             post.content = request.data['content']
             post.created_by = user
             if user.account_type == UserType.PERSONAL:
-                post.tagged_user = self.get_user_by_id_or_handle(request.data['tagged_user'])
+                try:
+                    post.tagged_user = self.get_user_by_id_or_handle(request.data['tagged_user'])
+                except User.DoesNotExist as e:
+                    return Response(data={'tagged_user': e.args}, status=HTTPStatus.BAD_REQUEST)
             elif user.account_type == UserType.BUSINESS:
                 post.tagged_user = None
             else:
@@ -50,9 +53,12 @@ class FeedView(APIView):
         return Response(serializer.data, status=HTTPStatus.CREATED)
 
     def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
+        kwargs = {}
         if self.is_uuid(id_or_handle):
-            return User.objects.get(id=UUID(id_or_handle))
-        return User.objects.get(handle=id_or_handle)
+            kwargs['id'] = UUID(id_or_handle)
+        else:
+            kwargs['handle'] = id_or_handle
+        return User.objects.get(**kwargs)
 
     def is_uuid(self, uuid_to_test: str) -> bool:
         try:
