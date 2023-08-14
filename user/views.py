@@ -30,6 +30,7 @@ class UserPagenation(PageNumberPagination):
 
 class UserDetailUpdateDeleteView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
+    serializer_class = UserSerializer
 
     def get_object(self, user_id):
         try:
