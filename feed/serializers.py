@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework import serializers
 
@@ -54,7 +55,7 @@ class PostSerializer(serializers.ModelSerializer):
         self.user = user
 
     def get_image_urls(self, obj: Post):
-        return [o.image.url for o in obj.postimage_set.order_by('order')]
+        return [settings.HOSTNAME + o.image.url for o in obj.postimage_set.order_by('order')]
 
     def get_likes(self, obj: Post):
         return obj.likedpost_set.count()

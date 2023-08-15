@@ -12,9 +12,18 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from datetime import timedelta
 from pathlib import Path
+from urllib.request import urlopen
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+HOSTNAME = 'http://localhost'
+try:
+    with urlopen('http://169.254.169.254/latest/meta-data/public-hostname') as res:
+        HOSTNAME = 'http://' + res.read().decode('utf-8')
+except:
+    pass
 
 
 # Quick-start development settings - unsuitable for production
