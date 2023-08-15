@@ -5,6 +5,8 @@ from django.db import IntegrityError
 from django.db.models import QuerySet
 from django.db.models import Q
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
+
 
 from .models import User, FollowedUser
 # from badge.models import Badge, BadgedUser
@@ -105,17 +107,14 @@ class FollowingListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
     pagination_class = UserPagenation
-
+    
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        try:
-            User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        following_id_list = FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
-        return User.objects.filter(id__in=following_id_list)
-
-
+        user = get_object_or_404(User, id=user_id)
+        following_ids = FollowedUser.objects.filter(followed_by=user).values_list('user_id', flat=True)
+        users = User.objects.filter(id__in=following_ids)
+        return users
+    
 class FollowerListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
@@ -123,13 +122,15 @@ class FollowerListView(generics.ListAPIView):
     
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        following_ids = FollowedUser.objects.filter(user_id=user_id).values_list('followed_by', flat=True)
+        user = get_object_or_404(User, id=user_id)
+        following_ids = FollowedUser.objects.filter(user=user).values_list('followed_by_id', flat=True)
         users = User.objects.filter(id__in=following_ids)
         return users
 
-
-# TODO: 로그인 해야만 쓸 수 있게 변경
-class FollowCreateDeleteView(views.APIView):
+class FollowCreateDeleteView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer
+    
     def post(self, request, user_id, following):
         try:
             following = User.objects.get(id=following)
@@ -163,6 +164,7 @@ class FollowCreateDeleteView(views.APIView):
         return Response(status=HTTPStatus.OK)
 
 class SavedPostListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PostSerializer
     pagination_class = SimplePagination
     
@@ -186,6 +188,7 @@ class SavedPostListView(generics.ListAPIView):
         return Response(serializer.data)
 
 class SavedPostCreateDeleteView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
     
     def post(self, request, user_id, feed_id):
