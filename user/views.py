@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 
 
 from .models import User, FollowedUser
+from authentication.models import EmailValidation
 # from badge.models import Badge, BadgedUser
 from feed.models import Post, SavedPost
 from .serializers import UserSerializer
@@ -65,15 +66,16 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         return Response(status=HTTPStatus.OK)
         
 class UserSignupSearchView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = UserPagenation
     
     def get_permissions(self):
         if self.request.method == "POST":
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
-    def get_queryset(self):
+    def get(self, request):
         type = self.request.query_params.get('type')
         query = self.request.query_params.get('query')
         recommend = self.request.query_params.get('recommend')
@@ -99,7 +101,22 @@ class UserSignupSearchView(generics.ListCreateAPIView):
         else:
             return Response(status=HTTPStatus.BAD_REQUEST)
         
-        return users
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=HTTPStatus.OK)
+    
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        email = request.data.get('email')
+        code = request.data.get('code')
+        if not EmailValidation.objects.filter(email=email, code=code).exists():
+            return Response(status=HTTPStatus.UNAUTHORIZED)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
+        self.perform_create(serializer)
+        EmailValidationCode = EmailValidation.objects.get(email=email, code=code)
+        EmailValidationCode.delete()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=HTTPStatus.CREATED, headers=headers)
         
 class FollowingListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
