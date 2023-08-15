@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from django.db import models
+from django.db.models import QuerySet
 from django.contrib.auth.models import AbstractUser
 
 import uuid
@@ -18,6 +21,9 @@ class User(AbstractUser):
     profile_image =  models.ImageField(upload_to='user_profile_image/', null=True)
     first_name = None
     last_name = None
+
+    followed_user: QuerySet[FollowedUser]
+    follower: QuerySet[FollowedUser] # 내가 팔로우 하고 있는 사람들
 
 
 class FollowedUser(models.Model):
