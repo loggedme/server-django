@@ -7,17 +7,16 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'password', 'username', 'email', 'name', 'handle', 'account_type', 'profile_image', 'thumbnail']
+        fields = ['id', 'password', 'email', 'name', 'handle', 'account_type', 'profile_image', 'thumbnail']
         extra_kwargs = {
             'id': {'read_only': True},
             'email': {'write_only': True},
             'password': {'write_only': True},
-            'username': {'write_only': True},
             'profile_image': {'required': False, 'write_only': True}
         }
         
     def create(self, validated_data):
-        return User.objects.create_user(**validated_data)
+        return User.objects.create_user(username=validated_data['email'], **validated_data)
     
     def get_thumbnail(self, obj):
         if obj.profile_image:
