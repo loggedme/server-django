@@ -1,6 +1,8 @@
 from http import HTTPStatus
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
+from django.db import IntegrityError
+from django.db.models import QuerySet
 from django.db.models import Q
 from django.db.models import Count
 
@@ -12,8 +14,8 @@ from .serializers import UserSerializer
 from feed.serializers import PostSerializer
 from feed.pagination import SimplePagination
 
-from rest_framework import generics, permissions
 from rest_framework import generics, permissions, views
+from rest_framework.pagination import PageNumberPagination
 
 class UserPagenation(PageNumberPagination):
     page_size = 50
@@ -103,10 +105,16 @@ class FollowingListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
     pagination_class = UserPagenation
-    
+
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        return FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
+        try:
+            User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        following_id_list = FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
+        return User.objects.filter(id__in=following_id_list)
+
 
 class FollowerListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
