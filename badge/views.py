@@ -9,6 +9,20 @@ from .models import Badge, BadgedUser
 from user.models import User
 
 class BadgeApi(View):
+    def get(self, request, badge_id):
+        data = {
+            "id": "1",
+            "thumbnail": "http://...~bar.??",
+            "description": "이 뱃지는 1992년 런던에서 시작하여...",
+            "publisher": {
+                "id": "1-sxxx-ajgleja1",
+                "name": "John Doe",
+                "handle": "sxvn9wxx",
+                "account_type": "personal",
+                "thumbnail": "http://...~foo.??"
+            }
+        }
+        return JsonResponse(status=200, data=data)
     def post(self, request):     # 뱃지 생성
         # if not request.user.is_authenticated:
         #     return HttpResponse(status=401)
