@@ -1,107 +1,105 @@
-import json
-from django.views.generic import View
 from http import HTTPStatus
-from django.http import JsonResponse, HttpResponse, HttpRequest
-from django.contrib.auth import authenticate
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
 
+from user.models import User, UserType
+from badge.models import Badge, BadgedUser
+from .serializers import BadgeSerializer
+from user.serializers import UserSerializer
 
-from .models import Badge, BadgedUser
-from user.models import User
+from rest_framework import generics, permissions
 
-class BadgeApi(View):
-    def get(self, request, badge_id):
-        data = {
-            "id": "1",
-            "thumbnail": "http://...~bar.??",
-            "description": "이 뱃지는 1992년 런던에서 시작하여...",
-            "publisher": {
-                "id": "1-sxxx-ajgleja1",
-                "name": "John Doe",
-                "handle": "sxvn9wxx",
-                "account_type": "personal",
-                "thumbnail": "http://...~foo.??"
-            }
-        }
-        return JsonResponse(status=200, data=data)
-    def post(self, request):     # 뱃지 생성
-        # if not request.user.is_authenticated:
-        #     return HttpResponse(status=401)
-        # if request.user.type != "business":
-        #     return HttpResponse(status=403)
-        #
-        # image = request.FILES.get('image')
-        # description = request.POST.get('description')
-        # if not image or not description:
-        #     return HttpResponse(status=400)
-        # Badge.objects.create(created_by=request.user.id, image=image, description=description)
+class BusinessUserPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        if user.is_anonymous:
+            return False
+        return user.account_type == UserType.BUSINESS
 
-        data = {
-            "id": "1",
-            "thumbnail": "http://...~bar.??",
-            "description": "이 뱃지는 1992년 런던에서 시작하여...",
-            "publisher": {
-                "id": "1-sxxx-ajgleja1",
-                "name": "John Doe",
-                "handle": "sxvn9wxx",
-                "account_type": "personal",
-                "thumbnail": "http://...~foo.??"
-            }
-        }
-        return JsonResponse(status=201, data=data)
+class BadgeCreateView(generics.CreateAPIView):
+    serializer_class = BadgeSerializer
+    permission_classes = [BusinessUserPermission]
 
-    def put(self, request, badge_id):      # 뱃지 수정
-        # if not request.user.is_authenticated:
-        #     return HttpResponse(status=401)
-        # if request.user.type != "business":
-        #     return HttpResponse(status=403)
-        #
-        # image = request.FILES.get('image')
-        # description = request.POST.get('description')
-        # if not image or not description:
-        #     return HttpResponse(status=400)
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
 
-        # Badge.objects.get(id=badge_id)
+class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = BadgeSerializer
+    permission_classes = [BusinessUserPermission]
 
-        data = {
-            "id": "1",
-            "thumbnail": "http://...~bar.??",
-            "description": "이 뱃지는 1992년 런던에서 시작하여...",
-            "publisher": {
-                "id": "1-sxxx-ajgleja1",
-                "name": "John Doe",
-                "handle": "sxvn9wxx",
-                "account_type": "personal",
-                "thumbnail": "http://...~foo.??"
-            }
-        }
-        return JsonResponse(status=200, data=data)
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [permissions.AllowAny()]
+        return self.permission_classes
 
-    def delete(self, request, badge_id):   # 뱃지 삭제
-        # if not request.user.is_authenticated:
-        #     return HttpResponse(status=401)
-        # if request.user.type != "business":
-        #     return HttpResponse(status=403)
-        # if not Badge.objects.filter(id=badge_id).exists():
-        #     return HttpResponse(status=404)
-        # badge = Badge.objects.get(id=badge_id)
-        # badge.delete()
-
-        return HttpResponse(status=200)
-
-
-class BadgeUserApi(View):
-    def post(self, request: HttpRequest, badge_id):
+    def get_object(self):
+        badge_id = self.kwargs['badge_id']
         try:
-            data = json.loads(request.body)
-            assert 'users' in data
-        except:
-            return HttpResponse(status=400)
-        return HttpResponse(status=201)
+            obj = Badge.objects.get(id=badge_id)
+        except Badge.DoesNotExist:
+            return Response(status=HTTPStatus.NOT_FOUND)
+        return obj
+
+    def retrieve(self, request, badge_id):
+        badge = get_object_or_404(Badge, id=badge_id)
+        serializer = self.get_serializer(badge)
+        return Response(serializer.data)
+
+    def patch(self, request, badge_id, *args, **kwargs):
+        badge = get_object_or_404(Badge, id=badge_id)
+        if badge.created_by != request.user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        return self.partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, badge_id):
+        badge = get_object_or_404(Badge, id=badge_id)
+        if badge.created_by != request.user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        self.perform_destroy(badge)
+        return Response(status=HTTPStatus.OK)
+
+class BadgedUserCreateDeleteView(generics.GenericAPIView):
+    serializer_class = BadgeSerializer
+    permission_classes = [BusinessUserPermission]
+
+    def post(self, request, **kwargs):
+        badge = get_object_or_404(Badge, id=kwargs["badge_id"])
+        if badge.created_by != request.user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        user_ids = request.data.get('users')
+        user_list = []
+
+        for user_id in user_ids:
+            try:
+                user = User.objects.get(id=user_id)
+                badged_user = BadgedUser(user=user, badge=badge)
+                badged_user.save()
+                user_list.append(user)
+            except (User.DoesNotExist, IntegrityError):
+                continue
+
+        badge_serializer = BadgeSerializer(badge)
+        recipient_serializer = UserSerializer(user_list, many=True)
+        data = {
+            "badge": badge_serializer.data,
+            "recipient": { "items": recipient_serializer.data }
+        }
+
+        return Response(data, status=HTTPStatus.CREATED)
 
     def delete(self, request, badge_id):
-        try:
-            data = json.loads(request.body)
-            assert 'users' in data
-        except:
-            return HttpResponse(status=400)
-        return HttpResponse(status=200)
+        badge = get_object_or_404(Badge, id=badge_id)
+        if badge.created_by != request.user:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        user_ids = request.data.get('users', [])
+
+        for user_id in user_ids:
+            try:
+                user = User.objects.get(id=user_id)
+                badged_user = BadgedUser.objects.get(user=user, badge=badge)
+                badged_user.delete()
+            except (User.DoesNotExist, BadgedUser.DoesNotExist):
+                pass
+
+        return Response(status=HTTPStatus.OK)
