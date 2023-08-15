@@ -106,10 +106,8 @@ class FollowingListView(generics.ListAPIView):
     
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        following_ids = FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
-        users = User.objects.filter(id__in=following_ids)
-        return users
-    
+        return FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
+
 class FollowerListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
