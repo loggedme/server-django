@@ -1,6 +1,8 @@
 from http import HTTPStatus
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
+from django.db import IntegrityError
+from django.db.models import QuerySet
 from django.db.models import Q
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
@@ -14,7 +16,7 @@ from .serializers import UserSerializer
 from feed.serializers import PostSerializer
 from feed.pagination import SimplePagination
 
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, views
 from rest_framework.pagination import PageNumberPagination
 
 class UserPagenation(PageNumberPagination):
@@ -130,21 +132,26 @@ class FollowCreateDeleteView(generics.GenericAPIView):
     serializer_class = UserSerializer
     
     def post(self, request, user_id, following):
-        if not User.objects.filter(id=user_id).exists() or not User.objects.filter(id=user_id).exists():
+        try:
+            following = User.objects.get(id=following)
+            followed_by = User.objects.get(id=user_id)
+        except User.DoesNotExist:
             return Response(status=HTTPStatus.NOT_FOUND)
-        if FollowedUser.objects.filter(user_id=following, followed_by_id=user_id).exists():
+        try:
+           entity = FollowedUser()
+           entity.user = followed_by
+           entity.followed_by = following
+           entity.save()
+        except IntegrityError:
             return Response(status=HTTPStatus.CONFLICT)
-        
-        follow = FollowedUser.objects.create(user_id=following, followed_by_id=user_id)
-        follow.save()
-        follow_user = UserSerializer(User.objects.get(id=user_id)) # request.user
-        followed_user = UserSerializer(User.objects.get(id=following))
-        data = {
-            "user": follow_user.data,
-            "following": followed_user.data
-        }
-        return Response(data, status=HTTPStatus.CREATED)
-    
+        return Response(
+            status=HTTPStatus.CREATED,
+            data={
+                'user': UserSerializer(entity.followed_by).data,
+                'following': UserSerializer(entity.user).data,
+            },
+        )
+
     def delete(self, request, user_id, following):
         if not User.objects.filter(id=user_id).exists() or not User.objects.filter(id=user_id).exists():
             return Response(status=HTTPStatus.NOT_FOUND)
