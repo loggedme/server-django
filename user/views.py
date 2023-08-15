@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
+
 
 from .models import User, FollowedUser
 # from badge.models import Badge, BadgedUser
@@ -106,7 +108,8 @@ class FollowingListView(generics.ListAPIView):
     
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        following_ids = FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
+        user = get_object_or_404(User, id=user_id)
+        following_ids = FollowedUser.objects.filter(followed_by=user).values_list('user_id', flat=True)
         users = User.objects.filter(id__in=following_ids)
         return users
     
@@ -117,13 +120,14 @@ class FollowerListView(generics.ListAPIView):
     
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        following_ids = FollowedUser.objects.filter(user_id=user_id).values_list('followed_by', flat=True)
+        user = get_object_or_404(User, id=user_id)
+        following_ids = FollowedUser.objects.filter(user=user).values_list('followed_by_id', flat=True)
         users = User.objects.filter(id__in=following_ids)
         return users
 
 class FollowCreateDeleteView(generics.GenericAPIView):
-    serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer
     
     def post(self, request, user_id, following):
         if not User.objects.filter(id=user_id).exists() or not User.objects.filter(id=user_id).exists():
@@ -153,6 +157,7 @@ class FollowCreateDeleteView(generics.GenericAPIView):
         return Response(status=HTTPStatus.OK)
 
 class SavedPostListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PostSerializer
     pagination_class = SimplePagination
     
@@ -176,6 +181,7 @@ class SavedPostListView(generics.ListAPIView):
         return Response(serializer.data)
 
 class SavedPostCreateDeleteView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
     
     def post(self, request, user_id, feed_id):
