@@ -29,9 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_is_following(self, obj: User):
         user = self._get_current_user()
-        if user is None:
-            raise NotImplementedError()
-        elif user.is_anonymous:
+        if user is None or user.is_anonymous:
             return False
         return user.follower.filter(user=obj).exists()
 
