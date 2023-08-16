@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 import json
+import os
 
 from datetime import timedelta
 from pathlib import Path
@@ -23,8 +24,11 @@ SECRETS_JSON = BASE_DIR / 'secrets.json'
 
 secrets = {}
 
-with open(SECRETS_JSON, 'r') as f:
-    secrets: dict = json.loads(f.read())
+if os.path.exists(SECRETS_JSON):
+    with open(SECRETS_JSON, 'r') as f:
+        secrets: dict = json.loads(f.read())
+else:
+    secrets = os.environ
 
 
 HOSTNAME = secrets['HOSTNAME']
