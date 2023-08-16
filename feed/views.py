@@ -48,6 +48,8 @@ class FeedView(APIView):
         # TODO: 누락된 키가 있을 경우 예외처리
         user: User = request.user
         images = request.FILES.getlist('images')
+        if len(images) == 0 or len(images) > 10:
+            return Response(data={'images': f'{len(images)} images received.'}, status=HTTPStatus.BAD_REQUEST)
         with transaction.atomic():
             post = Post()
             post.content = request.data['content']
