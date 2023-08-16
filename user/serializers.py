@@ -1,5 +1,7 @@
+from typing import Union
+
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 from rest_framework import serializers
 
@@ -33,7 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
             return False
         return user.follower.filter(user=obj).exists()
 
-    def _get_current_user(self) -> User | AnonymousUser | None:
+    def _get_current_user(self) -> Union[User, AnonymousUser, None]:
         if 'request' not in self.context:
             return None
         request: HttpRequest = self.context['request']

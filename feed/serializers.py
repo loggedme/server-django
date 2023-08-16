@@ -1,3 +1,5 @@
+from typing import Union
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework import serializers
@@ -45,9 +47,9 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         exclude = ['created_by']
 
-    user: AbstractBaseUser | AnonymousUser
+    user: Union[AbstractBaseUser, AnonymousUser]
 
-    def __init__(self, user: AbstractBaseUser | AnonymousUser, instance=None, data=None, **kwargs):
+    def __init__(self, user: Union[AbstractBaseUser, AnonymousUser], instance=None, data=None, **kwargs):
         if data is None:
             super().__init__(instance, **kwargs)
         else:
