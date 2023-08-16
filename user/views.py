@@ -66,7 +66,7 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
     def delete(self, request, user_id):
         self.permission_classes = [permissions.IsAuthenticated]
         user = self.get_object(user_id)
-        if request.user.id != user_id:
+        if request.user != user:
             return Response(status=HTTPStatus.FORBIDDEN)
         user.is_active = False
         user.save()
