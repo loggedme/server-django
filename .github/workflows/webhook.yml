@@ -1,0 +1,13 @@
+name: Temporal CI/CD via Webhook
+
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Calls Webhook
+      run: curl ${{ secrets.WEBHOOK }}
