@@ -3,5 +3,5 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('search', views.mock.search),
+    path('search', views.SearchView.as_view()),
 ]
