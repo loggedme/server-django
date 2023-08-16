@@ -28,17 +28,15 @@ class UserSerializer(serializers.ModelSerializer):
         return None
 
     def get_is_following(self, obj: User):
-        request: HttpRequest = self.context['request']
-        if request is None:
-            raise NotImplementedError()
-        user: AbstractBaseUser | AnonymousUser | User = request.user
+        user = self._get_current_user()
         if user is None:
             raise NotImplementedError()
-        if user.is_anonymous:
+        elif user.is_anonymous:
             return False
-        try:
-            user.follower.get(user=obj)
-            return True
-        except FollowedUser.DoesNotExist:
-            return False
-        return False
+        return user.follower.filter(user=obj).exists()
+
+    def _get_current_user(self) -> User | AnonymousUser | None:
+        if 'request' not in self.context:
+            return None
+        request: HttpRequest = self.context['request']
+        return request.user
