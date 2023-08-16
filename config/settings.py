@@ -10,18 +10,35 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import json
+import os
+
 from datetime import timedelta
 from pathlib import Path
+from urllib.request import urlopen
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+SECRETS_JSON = BASE_DIR / 'secrets.json'
+
+
+secrets = {}
+
+if os.path.exists(SECRETS_JSON):
+    with open(SECRETS_JSON, 'r') as f:
+        secrets: dict = json.loads(f.read())
+else:
+    secrets = os.environ
+
+
+HOSTNAME = secrets['HOSTNAME']
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!7fh-6z79p%hjeor#_ju75n%50&lh-r3zi9!(m&y_%e+4m5tdx'
+SECRET_KEY = secrets['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -92,10 +109,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': secrets['DATABASE_NAME'],
+        'USER': secrets['DATABASE_USER'],
+        'PASSWORD': secrets['DATABASE_PASSWORD'],
+        'HOST': secrets['DATABASE_HOST'],
+        'PORT': secrets['DATABASE_PORT'],
     }
 }
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = secrets['EMAIL_HOST']
+EMAIL_HOST_USER = secrets['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = secrets['EMAIL_HOST_PASSWORD']
+EMAIL_USE_TLS = secrets['EMAIL_USE_TLS']
+EMAIL_PORT = secrets['EMAIL_PORT']
+DEFAULT_FROM_MAIL = secrets['DEFAULT_FROM_MAIL']
 
 
 # Password validation
@@ -122,11 +151,11 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)

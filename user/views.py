@@ -1,12 +1,13 @@
 from http import HTTPStatus
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
-from django.db import IntegrityError
-from django.db.models import QuerySet
 from django.db.models import Q
 from django.db.models import Count
+from django.shortcuts import get_object_or_404
+
 
 from .models import User, FollowedUser
+from authentication.models import EmailValidation
 # from badge.models import Badge, BadgedUser
 from feed.models import Post, SavedPost
 from .serializers import UserSerializer
@@ -14,7 +15,7 @@ from .serializers import UserSerializer
 from feed.serializers import PostSerializer
 from feed.pagination import SimplePagination
 
-from rest_framework import generics, permissions, views
+from rest_framework import generics, permissions
 from rest_framework.pagination import PageNumberPagination
 
 class UserPagenation(PageNumberPagination):
@@ -65,15 +66,16 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         return Response(status=HTTPStatus.OK)
         
 class UserSignupSearchView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     pagination_class = UserPagenation
     
     def get_permissions(self):
         if self.request.method == "POST":
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.AllowAny()]
 
-    def get_queryset(self):
+    def get(self, request):
         type = self.request.query_params.get('type')
         query = self.request.query_params.get('query')
         recommend = self.request.query_params.get('recommend')
@@ -99,23 +101,35 @@ class UserSignupSearchView(generics.ListCreateAPIView):
         else:
             return Response(status=HTTPStatus.BAD_REQUEST)
         
-        return users
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data, status=HTTPStatus.OK)
+    
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        email = request.data.get('email')
+        code = request.data.get('code')
+        if not EmailValidation.objects.filter(email=email, code=code).exists():
+            return Response(status=HTTPStatus.UNAUTHORIZED)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
+        self.perform_create(serializer)
+        EmailValidationCode = EmailValidation.objects.get(email=email, code=code)
+        EmailValidationCode.delete()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=HTTPStatus.CREATED, headers=headers)
         
 class FollowingListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
     pagination_class = UserPagenation
-
+    
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        try:
-            User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        following_id_list = FollowedUser.objects.filter(followed_by_id=user_id).values_list('user_id', flat=True)
-        return User.objects.filter(id__in=following_id_list)
-
-
+        user = get_object_or_404(User, id=user_id)
+        following_ids = FollowedUser.objects.filter(followed_by=user).values_list('user_id', flat=True)
+        users = User.objects.filter(id__in=following_ids)
+        return users
+    
 class FollowerListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
@@ -123,34 +137,31 @@ class FollowerListView(generics.ListAPIView):
     
     def get_queryset(self):
         user_id = self.kwargs['user_id']
-        following_ids = FollowedUser.objects.filter(user_id=user_id).values_list('followed_by', flat=True)
+        user = get_object_or_404(User, id=user_id)
+        following_ids = FollowedUser.objects.filter(user=user).values_list('followed_by_id', flat=True)
         users = User.objects.filter(id__in=following_ids)
         return users
 
-
-# TODO: 로그인 해야만 쓸 수 있게 변경
-class FollowCreateDeleteView(views.APIView):
+class FollowCreateDeleteView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer
+    
     def post(self, request, user_id, following):
-        try:
-            following = User.objects.get(id=following)
-            followed_by = User.objects.get(id=user_id)
-        except User.DoesNotExist:
+        if not User.objects.filter(id=user_id).exists() or not User.objects.filter(id=user_id).exists():
             return Response(status=HTTPStatus.NOT_FOUND)
-        try:
-           entity = FollowedUser()
-           entity.user = followed_by
-           entity.followed_by = following
-           entity.save()
-        except IntegrityError:
+        if FollowedUser.objects.filter(user_id=following, followed_by_id=user_id).exists():
             return Response(status=HTTPStatus.CONFLICT)
-        return Response(
-            status=HTTPStatus.CREATED,
-            data={
-                'user': UserSerializer(entity.followed_by).data,
-                'following': UserSerializer(entity.user).data,
-            },
-        )
-
+        
+        follow = FollowedUser.objects.create(user_id=following, followed_by_id=user_id)
+        follow.save()
+        follow_user = UserSerializer(User.objects.get(id=user_id)) # request.user
+        followed_user = UserSerializer(User.objects.get(id=following))
+        data = {
+            "user": follow_user.data,
+            "following": followed_user.data
+        }
+        return Response(data, status=HTTPStatus.CREATED)
+    
     def delete(self, request, user_id, following):
         if not User.objects.filter(id=user_id).exists() or not User.objects.filter(id=user_id).exists():
             return Response(status=HTTPStatus.NOT_FOUND)
@@ -163,6 +174,7 @@ class FollowCreateDeleteView(views.APIView):
         return Response(status=HTTPStatus.OK)
 
 class SavedPostListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = PostSerializer
     pagination_class = SimplePagination
     
@@ -186,6 +198,7 @@ class SavedPostListView(generics.ListAPIView):
         return Response(serializer.data)
 
 class SavedPostCreateDeleteView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserSerializer
     
     def post(self, request, user_id, feed_id):

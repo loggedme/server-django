@@ -1,3 +1,6 @@
+from typing import Union
+
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
 from rest_framework import serializers
 
@@ -44,9 +47,9 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         exclude = ['created_by']
 
-    user: AbstractBaseUser | AnonymousUser
+    user: Union[AbstractBaseUser, AnonymousUser]
 
-    def __init__(self, user: AbstractBaseUser | AnonymousUser, instance=None, data=None, **kwargs):
+    def __init__(self, user: Union[AbstractBaseUser, AnonymousUser], instance=None, data=None, **kwargs):
         if data is None:
             super().__init__(instance, **kwargs)
         else:
@@ -54,7 +57,7 @@ class PostSerializer(serializers.ModelSerializer):
         self.user = user
 
     def get_image_urls(self, obj: Post):
-        return [o.image.url for o in obj.postimage_set.order_by('order')]
+        return [settings.HOSTNAME + o.image.url for o in obj.postimage_set.order_by('order')]
 
     def get_likes(self, obj: Post):
         return obj.likedpost_set.count()

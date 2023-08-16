@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from uuid import uuid4
 from django.db import models
 
@@ -20,6 +22,21 @@ class Post(models.Model):
     savedpost_set: models.QuerySet[SavedPost]
     likedpost_set: models.QuerySet[LikedPost]
     postimage_set: models.QuerySet[PostImage]
+    hashtaggedpost_set: models.QuerySet[HashTaggedPost]
+
+    def save(self, *args, **kwargs) -> None:
+        super(Post, self).save(*args, **kwargs)
+        self.hashtaggedpost_set.all().delete()
+        for word in set(re.findall(r"#(\w+)", self.content)):
+            try:
+                hashtag = HashTag.objects.get(name=word)
+            except HashTag.DoesNotExist:
+                hashtag = HashTag(name=word)
+                hashtag.save()
+            HashTaggedPost.objects.get_or_create(
+                post=self,
+                hashtag=hashtag,
+            )
 
 
 class PostImage(models.Model):
@@ -51,8 +68,8 @@ class Comment(models.Model):
 
 
 class HashTag(models.Model):
-    id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=200, blank=False)
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(unique=True, max_length=200, blank=False)
 
     hashtaggedpost_set: models.QuerySet[HashTaggedPost]
 
