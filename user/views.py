@@ -1,3 +1,4 @@
+import uuid
 from http import HTTPStatus
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
@@ -45,10 +46,16 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         user = self.get_object(user_id)
         badge_ids = BadgedUser.objects.filter(user=user).values_list('badge_id', flat=True)
         badges = Badge.objects.filter(id__in=badge_ids)
+        following_num = FollowedUser.objects.filter(followed_by=user).count()
+        follower_num = FollowedUser.objects.filter(user=user).count()
+        post_num = Post.objects.filter(created_by=user).count()
         serializer = UserSerializer(user)
         data = {
             "user": serializer.data,
-            "badge": {"items": BadgeSerializer(badges, many=True).data}
+            "badge": {"items": BadgeSerializer(badges, many=True).data},
+            "following": following_num,
+            "follower": follower_num,
+            "post_num": post_num
         }
         return Response(data, status=HTTPStatus.OK)
 
@@ -66,7 +73,7 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
     def delete(self, request, user_id):
         self.permission_classes = [permissions.IsAuthenticated]
         user = self.get_object(user_id)
-        if request.user.id != user_id:
+        if request.user != user:
             return Response(status=HTTPStatus.FORBIDDEN)
         user.is_active = False
         user.save()
