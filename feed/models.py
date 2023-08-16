@@ -20,6 +20,7 @@ class Post(models.Model):
     savedpost_set: models.QuerySet[SavedPost]
     likedpost_set: models.QuerySet[LikedPost]
     postimage_set: models.QuerySet[PostImage]
+    hashtaggedpost_set: models.QuerySet[HashTaggedPost]
 
 
 class PostImage(models.Model):
