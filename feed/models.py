@@ -53,7 +53,7 @@ class Comment(models.Model):
 
 class HashTag(models.Model):
     id = models.IntegerField(primary_key=True)
-    name = models.CharField(max_length=200, blank=False)
+    name = models.CharField(unique=True, max_length=200, blank=False)
 
     hashtaggedpost_set: models.QuerySet[HashTaggedPost]
 
