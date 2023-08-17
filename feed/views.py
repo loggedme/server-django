@@ -16,6 +16,7 @@ from user.models import User, UserType
 from feed.pagination import simple_pagination
 from feed.models import *
 from feed.serializers import *
+from notification.services import notify_comment, notify_like, notify_tag
 
 
 @permission_classes([IsAuthenticatedOrReadOnly])
@@ -70,6 +71,8 @@ class FeedView(APIView):
                 postimage.image = image
                 postimage.order = order
                 postimage.save()
+        if post.tagged_user is not None:
+            notify_tag(notified_user=post.tagged_user, tagged_by=user, post=post)
         serializer = PostSerializer(instance=post)
         return Response(serializer.data, status=HTTPStatus.CREATED)
 
@@ -124,6 +127,8 @@ class FeedDetailView(APIView):
                 except ValueError:
                     print(postimage.image.url, 'not found from', image_urls)
                     postimage.delete()
+        if post.tagged_user is not None:
+            notify_tag(notified_user=post.tagged_user, tagged_by=user, post=post)
         serializer = PostSerializer(instance=post)
         return Response(serializer.data, status=HTTPStatus.OK)
 
@@ -154,7 +159,8 @@ class FeedDetailView(APIView):
 @authentication_classes([JWTAuthentication])
 class FeedLikeView(APIView):
     def post(self, request: HttpRequest, post_id: UUID):
-        LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
+        likedpost, is_created = LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
+        notify_like(notified_user=likedpost.post.created_by, liked_by=request.user, post=likedpost.post)
         return Response(status=HTTPStatus.CREATED)
 
     def delete(self, request: HttpRequest, post_id: UUID):
@@ -190,6 +196,7 @@ class FeedCommentView(APIView):
             content=request.data['content'],
             created_by=request.user,
         )
+        notify_comment(notified_user=post.created_by, commented_by=comment.created_by, comment=comment)
         return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
 
 
