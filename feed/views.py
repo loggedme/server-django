@@ -23,7 +23,7 @@ from notification.services import notify_comment, notify_like, notify_tag
 @authentication_classes([JWTAuthentication])
 class FeedView(APIView):
     def get(self, request: HttpRequest):
-        queryset = Post.objects.all()
+        queryset = Post.objects.order_by('-created_at')
         if 'type' in request.GET:
             if request.GET['type'] == 'personal':
                 queryset = queryset.filter(created_by__account_type=UserType.PERSONAL)
@@ -41,7 +41,7 @@ class FeedView(APIView):
         if 'trending' in request.GET:
             # TODO: 추천 알고리즘 만들기
             queryset = queryset.order_by('-likedpost')
-        page = simple_pagination.paginate_queryset(queryset, request, view=self)
+        page = simple_pagination.paginate_queryset(queryset.all(), request, view=self)
         serializer = PostSerializer(instance=page, many=True)
         return simple_pagination.get_paginated_response(serializer.data)
 
