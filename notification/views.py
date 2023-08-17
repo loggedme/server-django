@@ -1,10 +1,20 @@
-from http import HTTPStatus
+from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.generics import ListAPIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from rest_framework.request import HttpRequest
-from rest_framework.response import Response
-from rest_framework.views import APIView
+from feed.pagination import SimplePagination
+from notification.serializers import NotificationSerializer
 
 
-class NotificationListView(APIView):
-    def get(self, request: HttpRequest):
-        return Response(status=HTTPStatus.OK)
+@permission_classes([IsAuthenticated])
+@authentication_classes([JWTAuthentication])
+class NotificationListView(ListAPIView):
+    pagination_class = SimplePagination
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_anonymous:
+            return []
+        return user.notifications.all()
