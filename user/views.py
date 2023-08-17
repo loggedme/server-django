@@ -51,6 +51,7 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         data = {
             "user": serializer.data,
             "badge": {"items": BadgeSerializer(badges, many=True).data},
+            "feed": {"count": posts.count(), "items": PostSerializer(instance=posts, many=True).data},
             "following": following_num,
             "follower": follower_num
         }
