@@ -24,7 +24,9 @@ class BadgeCreateView(generics.CreateAPIView):
     permission_classes = [BusinessUserPermission]
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        serializer.save(created_by=self.user)
+        self_badge = BadgedUser.objects.create(badge_id=serializer.data['id'], user_id=self.request.user.id)
+        self_badge.save()
 
 class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BadgeSerializer
