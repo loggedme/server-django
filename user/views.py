@@ -14,6 +14,7 @@ from feed.pagination import SimplePagination
 from feed.serializers import PostSerializer
 from user.models import FollowedUser, User
 from user.serializers import UserSerializer
+from notification.services import notify_follow
 
 
 class UserPagenation(PageNumberPagination):
@@ -166,6 +167,7 @@ class FollowCreateDeleteView(generics.GenericAPIView):
 
         follow = FollowedUser.objects.create(user_id=following, followed_by_id=user_id)
         follow.save()
+        notify_follow(notified_user=follow.user, followed_by=follow.followed_by)
         follow_user = UserSerializer(User.objects.get(id=user_id)) # request.user
         followed_user = UserSerializer(User.objects.get(id=following))
         data = {
