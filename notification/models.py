@@ -19,5 +19,6 @@ class Notification(models.Model):
     notified_user = models.ForeignKey('user.User', on_delete=models.CASCADE, related_name='notifications')
     arg_user = models.ForeignKey('user.User', on_delete=models.CASCADE, null=True)
     arg_post = models.ForeignKey('feed.Post', on_delete=models.CASCADE, null=True)
+    arg_comment = models.ForeignKey('feed.Comment', on_delete=models.CASCADE, null=True)
     arg_badge = models.ForeignKey('badge.Badge', on_delete=models.CASCADE, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
