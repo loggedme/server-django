@@ -41,6 +41,12 @@ class FeedView(APIView):
         if 'trending' in request.GET:
             # TODO: 추천 알고리즘 만들기
             queryset = queryset.order_by('-likedpost')
+        if 'hashtag' in request.GET:
+            query = request.GET.get('hashtag', '').strip()
+            if not query:
+                return Response(status=HTTPStatus.BAD_REQUEST)
+            post_ids = HashTaggedPost.objects.filter(hashtag__name=query).values_list('post', flat=True)
+            queryset = queryset.filter(id__in=post_ids)
         page = simple_pagination.paginate_queryset(queryset.all(), request, view=self)
         serializer = PostSerializer(instance=page, many=True)
         return simple_pagination.get_paginated_response(serializer.data)
