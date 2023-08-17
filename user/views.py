@@ -229,7 +229,7 @@ class SavedPostCreateDeleteView(generics.GenericAPIView):
         saved_post.save()
         user = saved_post.user
         post = saved_post.post
-        serializer = PostSerializer(user=user, instance=post)
+        serializer = PostSerializer(instance=post)
         return Response(serializer.data, status=HTTPStatus.CREATED)
 
     def delete(self, request, user_id, feed_id):
