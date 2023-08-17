@@ -9,7 +9,7 @@ from notification.models import *
 class NotificationSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()
     user = UserSerializer(source="arg_user")
-    feed = PostSerializer(source="arg_feed")
+    feed = PostSerializer(source="arg_post")
     comment = CommentSerializer(source="arg_comment")
     badge = BadgeSerializer(source="arg_badge")
 
