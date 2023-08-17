@@ -160,7 +160,7 @@ class FeedDetailView(APIView):
 class FeedLikeView(APIView):
     def post(self, request: HttpRequest, post_id: UUID):
         likedpost, is_created = LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
-        notify_like(notified_user=likedpost.post.created_by, liked_by=request.user)
+        notify_like(notified_user=likedpost.post.created_by, liked_by=request.user, post=likedpost.post)
         return Response(status=HTTPStatus.CREATED)
 
     def delete(self, request: HttpRequest, post_id: UUID):
