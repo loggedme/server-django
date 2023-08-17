@@ -41,7 +41,7 @@ class FeedView(APIView):
             # TODO: 추천 알고리즘 만들기
             queryset = queryset.order_by('-likedpost')
         page = simple_pagination.paginate_queryset(queryset, request, view=self)
-        serializer = PostSerializer(user=request.user, instance=page, many=True)
+        serializer = PostSerializer(instance=page, many=True)
         return simple_pagination.get_paginated_response(serializer.data)
 
     def post(self, request: HttpRequest):
@@ -70,7 +70,7 @@ class FeedView(APIView):
                 postimage.image = image
                 postimage.order = order
                 postimage.save()
-        serializer = PostSerializer(user=request.user, instance=post)
+        serializer = PostSerializer(instance=post)
         return Response(serializer.data, status=HTTPStatus.CREATED)
 
     def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
@@ -90,12 +90,12 @@ class FeedView(APIView):
 
 
 @permission_classes([IsAuthenticatedOrReadOnly])
-@authentication_classes([JWTAuthentication])
+@authentication_classes([JWTAuthentication]) # 토큰을 사용한 로그인 검사 (외부모듈 사용)
 class FeedDetailView(APIView):
     def get(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id)
-        serializer = PostSerializer(user=request.user, instance=post)
-        return Response(serializer.data, status=HTTPStatus.OK)
+        post = get_object_or_404(Post, id=post_id) # 피드 아이디에 해당하는 피드 가져옴
+        serializer = PostSerializer(instance=post) # 로그인한 사용자 정보를 반영하여 피드 정보를 JSON으로 변경
+        return Response(serializer.data, status=HTTPStatus.OK) # 재전송
 
     def put(self, request: HttpRequest, post_id: UUID, **kwargs):
         post = get_object_or_404(Post, id=post_id)
@@ -124,7 +124,7 @@ class FeedDetailView(APIView):
                 except ValueError:
                     print(postimage.image.url, 'not found from', image_urls)
                     postimage.delete()
-        serializer = PostSerializer(user=request.user, instance=post)
+        serializer = PostSerializer(instance=post)
         return Response(serializer.data, status=HTTPStatus.OK)
 
     def delete(self, request: HttpRequest, post_id: UUID, **kwargs):
@@ -197,10 +197,7 @@ class FeedCommentView(APIView):
 @authentication_classes([JWTAuthentication])
 class FeedCommentDetailView(APIView):
     def delete(self, request: HttpRequest, post_id: UUID, comment_id: UUID):
-        try:
-            comment = Comment.objects.get(id=comment_id)
-        except Comment.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
+        comment = get_object_or_404(Comment, id=comment_id)
         if comment.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
         comment.delete()
