@@ -13,7 +13,7 @@ from notification.services import notify_badge
 
 
 class BusinessUserPermission(permissions.BasePermission):
-    def has_permission(self, request):
+    def has_permission(self, request, *args):
         user = request.user
         if user.is_anonymous:
             return False
