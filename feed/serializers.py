@@ -1,7 +1,8 @@
 from typing import Union
 
 from django.conf import settings
-from django.contrib.auth.models import AbstractBaseUser, AnonymousUser
+from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest
 from rest_framework import serializers
 
 from user.models import User
@@ -47,14 +48,11 @@ class PostSerializer(serializers.ModelSerializer):
         model = Post
         exclude = ['created_by']
 
-    user: Union[AbstractBaseUser, AnonymousUser]
-
-    def __init__(self, user: Union[AbstractBaseUser, AnonymousUser], instance=None, data=None, **kwargs):
-        if data is None:
-            super().__init__(instance, **kwargs)
-        else:
-            super().__init__(data=data, **kwargs)
-        self.user = user
+    def _get_current_user(self) -> Union[User, AnonymousUser]:
+        if 'request' not in self.context:
+            return AnonymousUser()
+        request: HttpRequest = self.context['request']
+        return request.user
 
     def get_image_urls(self, obj: Post):
         return [settings.HOSTNAME + o.image.url for o in obj.postimage_set.order_by('order')]
@@ -66,21 +64,13 @@ class PostSerializer(serializers.ModelSerializer):
         return obj.created_at != obj.modified_at
 
     def get_is_liked(self, obj: Post):
-        return not self.user.is_anonymous and self.is_liked_by(obj, self.user)
-
-    def is_liked_by(self, post: Post, user: User) -> bool:
-        try:
-            post.likedpost_set.get(user=user)
-        except LikedPost.DoesNotExist:
+        user = self._get_current_user()
+        if user.is_anonymous:
             return False
-        return True
+        return obj.likedpost_set.filter(user=user).exists()
 
     def get_is_saved(self, obj: Post):
-        return not self.user.is_anonymous and self.is_saved_by(obj, self.user)
-
-    def is_saved_by(self, post: Post, user: User) -> bool:
-        try:
-            post.savedpost_set.get(user=user)
-        except SavedPost.DoesNotExist:
+        user = self._get_current_user()
+        if user.is_anonymous:
             return False
-        return True
+        return obj.savedpost_set.filter(user=user).exists()
