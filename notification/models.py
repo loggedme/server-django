@@ -1,9 +1,5 @@
 from django.db import models
 
-from user.models import User
-from feed.models import Post
-from badge.models import Badge
-
 # Create your models here.
 
 
@@ -16,9 +12,9 @@ class NotificationType(models.IntegerChoices):
 
 
 class Notification(models.Model):
-    id = models.UUIDField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
     type = models.IntegerField(choices=NotificationType.choices)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
-    badge = models.ForeignKey(Badge, on_delete=models.CASCADE, null=True)
+    user = models.ForeignKey('user.User', on_delete=models.CASCADE)
+    post = models.ForeignKey('feed.Post', on_delete=models.CASCADE, null=True)
+    badge = models.ForeignKey('badge.Badge', on_delete=models.CASCADE, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
