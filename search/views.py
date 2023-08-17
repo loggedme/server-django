@@ -18,9 +18,8 @@ from search.serializers import HashTagSerializer
 @authentication_classes([JWTAuthentication])
 class SearchView(APIView):
     def get(self, request: HttpRequest):
-        try:
-            query = request.GET['query']
-        except KeyError:
+        query = request.GET.get('query', '').strip()
+        if not query:
             return Response(status=HTTPStatus.BAD_REQUEST)
         return Response(
             status=HTTPStatus.OK,

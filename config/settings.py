@@ -12,10 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import json
 import os
-
 from datetime import timedelta
 from pathlib import Path
-from urllib.request import urlopen
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -117,7 +116,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': secrets['DATABASE_ENGINE'],
         'NAME': secrets['DATABASE_NAME'],
         'USER': secrets['DATABASE_USER'],
         'PASSWORD': secrets['DATABASE_PASSWORD'],
