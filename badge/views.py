@@ -25,6 +25,8 @@ class BadgeCreateView(generics.CreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
+        self_badge = BadgedUser.objects.create(badge_id=serializer.data['id'], user_id=self.request.user.id)
+        self_badge.save()
 
 class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BadgeSerializer
