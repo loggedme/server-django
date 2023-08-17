@@ -1,17 +1,18 @@
 from http import HTTPStatus
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
+from rest_framework import generics, permissions
+from rest_framework.response import Response
 
 from user.models import User, UserType
-from badge.models import Badge, BadgedUser
-from .serializers import BadgeSerializer
 from user.serializers import UserSerializer
+from badge.models import Badge, BadgedUser
+from badge.serializers import BadgeSerializer
 
-from rest_framework import generics, permissions
 
 class BusinessUserPermission(permissions.BasePermission):
-    def has_permission(self, request, view):
+    def has_permission(self, request):
         user = request.user
         if user.is_anonymous:
             return False
@@ -26,12 +27,11 @@ class BadgeCreateView(generics.CreateAPIView):
 
 class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BadgeSerializer
-    permission_classes = [BusinessUserPermission]
 
     def get_permissions(self):
         if self.request.method == "GET":
             return [permissions.AllowAny()]
-        return self.permission_classes
+        return [BusinessUserPermission]
 
     def get_object(self):
         badge_id = self.kwargs['badge_id']
@@ -51,6 +51,9 @@ class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
         if badge.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
         return self.partial_update(request, *args, **kwargs)
+
+    def put(self, request, badge_id, *args, **kwargs):
+        return self.patch(request, badge_id, *args, **kwargs)
 
     def destroy(self, request, badge_id):
         badge = get_object_or_404(Badge, id=badge_id)
