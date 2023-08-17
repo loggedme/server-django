@@ -48,14 +48,14 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         badges = Badge.objects.filter(id__in=badge_ids)
         following_num = FollowedUser.objects.filter(followed_by=user).count()
         follower_num = FollowedUser.objects.filter(user=user).count()
-        post_num = Post.objects.filter(created_by=user).count()
+        posts = Post.objects.filter(created_by=user)
         serializer = UserSerializer(user)
         data = {
             "user": serializer.data,
             "badge": {"items": BadgeSerializer(badges, many=True).data},
+            "feed": {"count": posts.count(), "items": PostSerializer(user=user, instance=posts, many=True).data},
             "following": following_num,
-            "follower": follower_num,
-            "post_num": post_num
+            "follower": follower_num
         }
         return Response(data, status=HTTPStatus.OK)
 
