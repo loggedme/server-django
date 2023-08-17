@@ -199,9 +199,9 @@ class FeedCommentDetailView(APIView):
     def delete(self, request: HttpRequest, post_id: UUID, comment_id: UUID):
         try:
             comment = Comment.objects.get(id=comment_id)
-            comment.delete()
         except Comment.DoesNotExist:
             return Response(status=HTTPStatus.NOT_FOUND)
         if comment.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
+        comment.delete()
         return Response(status=HTTPStatus.OK)
