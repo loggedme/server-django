@@ -16,3 +16,8 @@ class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification
         fields = ['type', 'user', 'feed', 'comment', 'badge']
+
+    def get_type(self, obj: Notification):
+        for value, label in NotificationType.choices:
+            return label.lower()
+        raise ValueError()
