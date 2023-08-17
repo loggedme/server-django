@@ -46,7 +46,7 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         badges = Badge.objects.filter(id__in=badge_ids)
         following_num = FollowedUser.objects.filter(followed_by=user).count()
         follower_num = FollowedUser.objects.filter(user=user).count()
-        posts = Post.objects.filter(created_by=user)
+        posts = Post.objects.filter(created_by=user).order_by('-created_at')
         serializer = UserSerializer(user)
         data = {
             "user": serializer.data,
