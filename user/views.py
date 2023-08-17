@@ -1,23 +1,20 @@
-import uuid
 from http import HTTPStatus
-from rest_framework.response import Response
-from django.contrib.auth import authenticate
-from django.db.models import Q
-from django.db.models import Count
+
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
-
-
-from .models import User, FollowedUser
-from authentication.models import EmailValidation
-from badge.models import Badge, BadgedUser
-from feed.models import Post, SavedPost
-from .serializers import UserSerializer
-from badge.serializers import BadgeSerializer
-from feed.serializers import PostSerializer
-from feed.pagination import SimplePagination
-
 from rest_framework import generics, permissions
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+
+from authentication.models import EmailValidation
+from badge.models import Badge, BadgedUser
+from badge.serializers import BadgeSerializer
+from feed.models import Post, SavedPost
+from feed.pagination import SimplePagination
+from feed.serializers import PostSerializer
+from user.models import FollowedUser, User
+from user.serializers import UserSerializer
+
 
 class UserPagenation(PageNumberPagination):
     page_size = 50
@@ -33,7 +30,7 @@ class UserPagenation(PageNumberPagination):
         })
 
 class UserDetailUpdateDeleteView(generics.GenericAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     serializer_class = UserSerializer
 
     def get_object(self, user_id):
@@ -53,14 +50,12 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         data = {
             "user": serializer.data,
             "badge": {"items": BadgeSerializer(badges, many=True).data},
-            "feed": {"count": posts.count(), "items": PostSerializer(user=user, instance=posts, many=True).data},
             "following": following_num,
             "follower": follower_num
         }
         return Response(data, status=HTTPStatus.OK)
 
     def patch(self, request, user_id):
-        self.permission_classes = [permissions.IsAuthenticated]
         user = self.get_object(user_id)
         if request.user.id != user_id:
             return Response(status=HTTPStatus.FORBIDDEN)
@@ -70,8 +65,10 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
             return Response(serializer.data, status=HTTPStatus.OK)
         return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
 
+    def put(self, request, user_id):
+        return self.patch(request, user_id)
+
     def delete(self, request, user_id):
-        self.permission_classes = [permissions.IsAuthenticated]
         user = self.get_object(user_id)
         if request.user != user:
             return Response(status=HTTPStatus.FORBIDDEN)
