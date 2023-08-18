@@ -22,13 +22,13 @@ class User(AbstractUser):
     first_name = None
     last_name = None
 
-    followed_user: QuerySet[FollowedUser]
-    follower: QuerySet[FollowedUser] # 내가 팔로우 하고 있는 사람들
+    follower: QuerySet[FollowedUser]
+    following: QuerySet[FollowedUser] # 내가 팔로우 하고 있는 사람들
 
 
 class FollowedUser(models.Model):
-    user = models.ForeignKey(User, related_name='followed_user', on_delete=models.CASCADE)         # 팔로우 받는 사람
-    followed_by = models.ForeignKey(User, related_name='follower', on_delete=models.CASCADE)     # 팔로우 하는 사람
+    user = models.ForeignKey(User, related_name='follower', on_delete=models.CASCADE)         # 팔로우 받는 사람
+    followed_by = models.ForeignKey(User, related_name='following', on_delete=models.CASCADE)     # 팔로우 하는 사람
 
     class Meta:
         unique_together = ['user', 'followed_by']
