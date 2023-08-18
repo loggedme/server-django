@@ -22,6 +22,26 @@ from feed.models import *
 from feed.serializers import *
 
 
+class ToggleView(views.APIView):
+    def get_queryset(self) -> QuerySet:
+        pass
+
+    def _set_attrs(self, request: HttpRequest, **kwargs):
+        self.kwargs = kwargs
+        self.request = request
+
+    def post(self, request: HttpRequest, **kwargs):
+        self._set_attrs(request, **kwargs)
+        obj, created = self.get_queryset().get_or_create(**kwargs)
+        return Response(status=status.HTTP_202_ACCEPTED if not created else status.HTTP_205_RESET_CONTENT)
+
+    def delete(self, request: HttpRequest, **kwargs):
+        self._set_attrs(request, **kwargs)
+        obj, created = self.get_queryset().get_or_create(**kwargs)
+        obj.delete()
+        return Response(status=status.HTTP_202_ACCEPTED if created else status.HTTP_205_RESET_CONTENT)
+
+
 class FeedListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = PostSerializer
