@@ -13,7 +13,7 @@ from user.models import User
 class Post(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
     content = models.CharField(max_length=2000)
-    tagged_user = models.ForeignKey(User, null=True, on_delete=models.CASCADE, related_name='tagged_posts')
+    tagged_user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='tagged_posts')
     created_at = models.DateTimeField(auto_now_add=True)
     modified_at = models.DateTimeField(auto_now=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)

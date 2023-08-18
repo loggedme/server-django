@@ -79,8 +79,8 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         user = self.get_object(user_id)
         if request.user != user:
             return Response(status=HTTPStatus.FORBIDDEN)
-        user.is_active = False
-        user.save()
+        user.delete()
+
         return Response(status=HTTPStatus.OK)
 
 class UserSignupSearchView(generics.ListCreateAPIView):
