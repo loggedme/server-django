@@ -94,6 +94,7 @@ class FeedListView(generics.ListCreateAPIView):
                 post.created_by = request.user
                 post.save()
                 self._create_post_images(request, post)
+                notify_tag(post.tagged_user, post.created_by, post)
                 return post
             except KeyError as e:
                 raise ValidationError(str(e))
