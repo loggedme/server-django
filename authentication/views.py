@@ -26,9 +26,9 @@ class AuthTokenView(APIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({"errors": "no user has this email"}, status=HTTPStatus.UNAUTHORIZED)
+            return Response({"error": "no user has this email"}, status=HTTPStatus.UNAUTHORIZED)
         if not check_password(password, user.password):
-            return Response({"errors": "wrong password"}, status=HTTPStatus.UNAUTHORIZED)
+            return Response({"error": "wrong password"}, status=HTTPStatus.UNAUTHORIZED)
         token = RefreshToken.for_user(user)
         serializer = UserSerializer(user)
         return Response(
@@ -48,13 +48,13 @@ class AuthValidationView(APIView):
     def post(self, request: HttpRequest):
         email = request.data.get('email')
         if email is None:
-            return Response(status=HTTPStatus.BAD_REQUEST)
+            return Response({"error": "Email is None"}, status=HTTPStatus.BAD_REQUEST)
         if EmailValidation.objects.filter(email=email).exists():
             EmailValidation.objects.filter(email=email).delete()
         EmailValidationCode = EmailValidation.objects.create(email=email)
-        
+
         subject = 'Logged.me 인증 코드'
-        message = EmailValidationCode.code
+        message = f'이메일 인증 코드는 <{EmailValidationCode.code}> 입니다. '
         from_email = 'loggedme@naver.com'
         recipient_list = [email]
 
@@ -62,7 +62,7 @@ class AuthValidationView(APIView):
             send_mail(subject, message, from_email, recipient_list, fail_silently=False)
             return Response(status=HTTPStatus.OK)
         except Exception as e:
-            return Response(status=HTTPStatus.SERVICE_UNAVAILABLE)
+            return Response({"error": "Email send error"}, status=HTTPStatus.SERVICE_UNAVAILABLE)
 
 
 @permission_classes([AllowAny])
@@ -73,9 +73,9 @@ class AuthValidationCheckView(APIView):
         try:
             mail = EmailValidation.objects.get(email=email)
         except EmailValidation.DoesNotExist:
-            return Response(status=HTTPStatus.BAD_REQUEST)
+            return Response({"error": "Please authenticate"}, status=HTTPStatus.BAD_REQUEST)
         if code != mail.code:
-            return Response(status=HTTPStatus.UNAUTHORIZED)
+            return Response({"error": "Wrong code"}, status=HTTPStatus.UNAUTHORIZED)
         return Response(status=HTTPStatus.OK)
 
 
@@ -85,17 +85,17 @@ class AuthResetPasswordView(APIView):
         email = request.data.get('email')
         code = request.data.get('code')
         password = request.data.get('password')
-         
+
         if password is None or email is None or code is None:
-            return Response(status=HTTPStatus.BAD_REQUEST)
+            return Response({"error": "Enter all informations"}, status=HTTPStatus.BAD_REQUEST)
         try:
             mail = EmailValidation.objects.get(email=email)
         except EmailValidation.DoesNotExist:
-            return Response(status=HTTPStatus.UNAUTHORIZED)
+            return Response({"error": "Please authenticate"}, status=HTTPStatus.UNAUTHORIZED)
         if code != mail.code:
-            return Response(status=HTTPStatus.UNAUTHORIZED)
+            return Response({"error": "Wrong code"}, status=HTTPStatus.UNAUTHORIZED)
         if not User.objects.filter(email=email).exists():
-            return Response(status=HTTPStatus.BAD_REQUEST)
+            return Response({"error": "No user has thie email"}, status=HTTPStatus.BAD_REQUEST)
         user = User.objects.get(email=email)
         user.set_password(password)
         user.save()
