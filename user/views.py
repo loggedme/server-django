@@ -47,11 +47,16 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         following_num = FollowedUser.objects.filter(followed_by=user).count()
         follower_num = FollowedUser.objects.filter(user=user).count()
         posts = Post.objects.filter(created_by=user).order_by('-created_at')
-        serializer = UserSerializer(user)
+        user_serializer = self.get_serializer(user)
+        self.serializer_class = BadgeSerializer
+        badge_serializer = self.get_serializer(badges, many=True)
+        self.serializer_class = PostSerializer
+        feed_serializer = self.get_serializer(instance=posts, many=True)
+
         data = {
-            "user": serializer.data,
-            "badge": {"items": BadgeSerializer(badges, many=True).data},
-            "feed": {"count": posts.count(), "items": PostSerializer(instance=posts, many=True).data},
+            "user": user_serializer.data,
+            "badge": {"items": badge_serializer.data},
+            "feed": {"count": posts.count(), "items": feed_serializer.data},
             "following": following_num,
             "follower": follower_num
         }
@@ -61,7 +66,7 @@ class UserDetailUpdateDeleteView(generics.GenericAPIView):
         user = self.get_object(user_id)
         if request.user.id != user_id:
             return Response(status=HTTPStatus.FORBIDDEN)
-        serializer = UserSerializer(user, data=request.data, partial=True)
+        serializer = self.get_serializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=HTTPStatus.OK)
@@ -83,7 +88,6 @@ class UserSignupSearchView(generics.ListCreateAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
     pagination_class = UserPagenation
-
 
     def get(self, request):
         type = self.request.query_params.get('type')
@@ -112,7 +116,7 @@ class UserSignupSearchView(generics.ListCreateAPIView):
         else:
             return Response(status=HTTPStatus.BAD_REQUEST)
 
-        serializer = UserSerializer(users, many=True)
+        serializer = self.get_serializer(users, many=True)
         return Response(serializer.data, status=HTTPStatus.OK)
 
     def create(self, request):
@@ -169,8 +173,8 @@ class FollowCreateDeleteView(generics.GenericAPIView):
         follow = FollowedUser.objects.create(user_id=following, followed_by_id=user_id)
         follow.save()
         notify_follow(notified_user=follow.user, followed_by=follow.followed_by)
-        follow_user = UserSerializer(User.objects.get(id=user_id)) # request.user
-        followed_user = UserSerializer(User.objects.get(id=following))
+        follow_user = self.get_serializer(User.objects.get(id=user_id)) # request.user
+        followed_user = self.get_serializer(User.objects.get(id=following))
         data = {
             "user": follow_user.data,
             "following": followed_user.data
@@ -212,7 +216,7 @@ class SavedPostListView(generics.ListAPIView):
             return Response(status=HTTPStatus.NOT_FOUND)
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(user=user, instance=page, many=True)
+            serializer = self.get_serializer(instance=page, many=True)
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(user=user, instance=queryset, many=True)
@@ -232,7 +236,8 @@ class SavedPostCreateDeleteView(generics.GenericAPIView):
         saved_post.save()
         user = saved_post.user
         post = saved_post.post
-        serializer = PostSerializer(instance=post)
+        self.serializer_class = PostSerializer
+        serializer = self.get_serializer(instance=post)
         return Response(serializer.data, status=HTTPStatus.CREATED)
 
     def delete(self, request, user_id, feed_id):
