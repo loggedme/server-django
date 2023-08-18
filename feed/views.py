@@ -1,26 +1,17 @@
-import json
-from http import HTTPStatus
 from uuid import UUID
-from typing import List
 
 from django.db import transaction
 from django.db.models import QuerySet
 from django.http import HttpRequest
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import authentication_classes, permission_classes
-from rest_framework import generics
+from rest_framework import generics, views, status
 from rest_framework.exceptions import ValidationError, NotAuthenticated, PermissionDenied
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from user.models import User, UserType
-from user.services import get_user
-from feed.pagination import simple_pagination, SimplePagination
+from feed.pagination import SimplePagination
 from feed.models import *
 from feed.serializers import *
-from notification.services import notify_comment, notify_like, notify_tag
 
 
 class FeedListView(generics.ListCreateAPIView):
@@ -75,164 +66,104 @@ class FeedListView(generics.ListCreateAPIView):
         post_ids = HashTaggedPost.objects.filter(hashtag__name=raw_hashtag).values_list('post', flat=True)
         return queryset.filter(id__in=post_ids)
 
-
-    def create(self, request: HttpRequest, *args, **kwargs):
-        super().create
-        user: User = request.user
-        with transaction.atomic():
-            if user.account_type == UserType.PERSONAL:
-                post = self._create_personal_post(request)
-            elif user.account_type == UserType.BUSINESS:
-                post = self._create_business_post(request)
-        return Response(data=self.get_serializer(instance=post).data, status=HTTPStatus.CREATED)
-
-    def _create_personal_post(self, request: HttpRequest) -> Post:
-            try:
-                post = Post()
-                post.content = request.data['content']
-                post.tagged_user = get_user(request.data['tagged_user'])
-                post.created_by = request.user
-                post.save()
-                self._create_post_images(request, post)
-                return post
-            except KeyError as e:
-                raise ValidationError(str(e))
-
-    def _create_business_post(self, request: HttpRequest) -> Post:
-            try:
-                post = Post()
-                post.content = request.data['content']
-                post.created_by = request.user
-                post.save()
-                self._create_post_images(request, post)
-                return post
-            except KeyError as e:
-                raise ValidationError(str(e))
-
-    def _create_post_images(self, request: HttpRequest, post: Post):
-        images = request.FILES.getlist('images')
+    def perform_create(self, serializer: PostSerializer):
+        images = self.request.FILES.getlist('images')
         if len(images) == 0 or len(images) > 10:
             raise ValidationError(f'{len(images)} images are not allowed.')
-        for order, image in enumerate(images):
-            postimage = PostImage()
-            postimage.post = post
-            postimage.image = image
-            postimage.order = order
-            postimage.save()
+        kwargs = {}
+        if 'tagged_user' in self.request.data:
+            try:
+                user_id = UUID(self.request.data['tagged_user'])
+                kwargs['tagged_user'] = User.objects.get(id=user_id)
+            except ValueError as e:
+                raise ValidationError(e)
+            except User.DoesNotExist:
+                raise ValidationError({
+                    "message": f"User with id '{user_id}' is not found.",
+                })
+        with transaction.atomic():
+            post = serializer.save(**kwargs)
+            for order, image in enumerate(images):
+                postimage = PostImage()
+                postimage.post = post
+                postimage.image = image
+                postimage.order = order
+                postimage.save()
 
 
 class FeedDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = PostSerializer
     queryset = Post.objects
+    lookup_url_kwarg = 'post_id'
 
+    def check_object_permissions(self, request: HttpRequest, obj: Post):
+        if request.method != 'GET' and obj.created_by != request.user:
+            raise PermissionDenied({
+                "message": "자신이 작성한 피드만 수정하거나 삭제 할 수 있습니다.",
+                "author": obj.created_by.handle,
+                "currentUser": request.user.handle,
+            })
+        return super().check_object_permissions(request, obj)
 
-@permission_classes([IsAuthenticatedOrReadOnly])
-@authentication_classes([JWTAuthentication]) # 토큰을 사용한 로그인 검사 (외부모듈 사용)
-class FeedDetailView(APIView):
-    def get(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id) # 피드 아이디에 해당하는 피드 가져옴
-        serializer = PostSerializer(instance=post) # 로그인한 사용자 정보를 반영하여 피드 정보를 JSON으로 변경
-        return Response(serializer.data, status=HTTPStatus.OK) # 재전송
-
-    def put(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id)
-        user: User = request.user
-        data = json.loads(request.body)
-        if post.created_by != user:
-            return Response(status=HTTPStatus.FORBIDDEN)
-        with transaction.atomic():
-            post.content = data['content']
-            if user.account_type == UserType.PERSONAL:
-                try:
-                    post.tagged_user = self.get_user_by_id_or_handle(data['tagged_user'])
-                except User.DoesNotExist as e:
-                    return Response(data={'tagged_user': e.args}, status=HTTPStatus.BAD_REQUEST)
-            elif user.account_type == UserType.BUSINESS:
-                post.tagged_user = None
-            else:
-                raise Exception()
-            post.save()
-            # TODO: 새로운 이미지 추가
-            image_urls: List[str] = data['image_urls']
-            for postimage in post.postimage_set.all():
-                try:
-                    postimage.order = image_urls.index(postimage.image.url)+1
-                    postimage.save()
-                except ValueError:
-                    print(postimage.image.url, 'not found from', image_urls)
-                    postimage.delete()
-        if post.tagged_user is not None:
-            notify_tag(notified_user=post.tagged_user, tagged_by=user, post=post)
-        serializer = PostSerializer(instance=post)
-        return Response(serializer.data, status=HTTPStatus.OK)
-
-    def delete(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id)
-        if post.created_by != request.user:
-            return Response(status=HTTPStatus.FORBIDDEN)
-        post.delete()
-        return Response(status=HTTPStatus.OK)
-
-    def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
+    def perform_update(self, serializer: PostSerializer):
         kwargs = {}
-        if self.is_uuid(id_or_handle):
-            kwargs['id'] = UUID(id_or_handle)
-        else:
-            kwargs['handle'] = id_or_handle
-        return User.objects.get(**kwargs)
-
-    def is_uuid(self, uuid_to_test: str) -> bool:
-        try:
-            uuid_obj = UUID(uuid_to_test)
-        except ValueError:
-            return False
-        return str(uuid_obj) == uuid_to_test
-
-
-@permission_classes([IsAuthenticated])
-@authentication_classes([JWTAuthentication])
-class FeedLikeView(APIView):
-    def post(self, request: HttpRequest, post_id: UUID):
-        likedpost, is_created = LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
-        notify_like(notified_user=likedpost.post.created_by, liked_by=request.user, post=likedpost.post)
-        return Response(status=HTTPStatus.CREATED)
-
-    def delete(self, request: HttpRequest, post_id: UUID):
-        LikedPost.objects.get(post_id=post_id, user_id=request.user.id).delete()
-        return Response(status=HTTPStatus.OK)
+        if 'tagged_user' in self.request.data:
+            try:
+                user_id = UUID(self.request.data['tagged_user'])
+                kwargs['tagged_user'] = User.objects.get(id=user_id)
+            except ValueError as e:
+                raise ValidationError(e)
+            except User.DoesNotExist:
+                raise ValidationError({
+                    "message": f"User with id '{user_id}' is not found.",
+                })
+        serializer.save(**kwargs)
 
 
-@permission_classes([IsAuthenticatedOrReadOnly])
-@authentication_classes([JWTAuthentication])
-class FeedCommentView(APIView):
-    @permission_classes([AllowAny])
-    def get(self, request: HttpRequest, post_id: UUID):
-        try:
-            post = Post.objects.get(id=post_id)
-        except Post.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        queryset = post.comment_set.all()
-        page = simple_pagination.paginate_queryset(queryset, request, view=self)
-        serializer = CommentSerializer(
-            instance=page,
-            many=True,
-        )
-        return simple_pagination.get_paginated_response(serializer.data)
+class FeedLikeView(views.APIView):
+    permission_classes = [IsAuthenticated]
 
-    def post(self, request: HttpRequest, post_id: UUID):
-        try:
-            post = Post.objects.get(id=post_id)
-        except Post.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        if 'content' not in request.data:
-            return Response(status=HTTPStatus.BAD_REQUEST)
-        comment = post.comment_set.create(
-            content=request.data['content'],
-            created_by=request.user,
-        )
-        notify_comment(notified_user=post.created_by, commented_by=comment.created_by, comment=comment)
-        return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
+    def get_queryset(self) -> QuerySet:
+        return LikedPost.objects
+
+    def post(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        return Response(status=status.HTTP_202_ACCEPTED if not created else status.HTTP_205_RESET_CONTENT)
+
+    def delete(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        obj.delete()
+        return Response(status=status.HTTP_202_ACCEPTED if created else status.HTTP_205_RESET_CONTENT)
+
+
+class FeedSaveView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self) -> QuerySet:
+        return SavedPost.objects
+
+    def post(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        return Response(status=status.HTTP_202_ACCEPTED if not created else status.HTTP_205_RESET_CONTENT)
+
+    def delete(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        obj.delete()
+        return Response(status=status.HTTP_202_ACCEPTED if created else status.HTTP_205_RESET_CONTENT)
+
+
+class CommentListView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    serializer_class = CommentSerializer
+    pagination_class = SimplePagination
+    queryset = Comment.objects
+
+    def get_queryset(self):
+        return super().get_queryset().filter(**self.kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(post_id=self.kwargs['post_id'])
 
 
 class CommentDetailsView(generics.RetrieveDestroyAPIView):
