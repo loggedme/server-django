@@ -2,8 +2,6 @@ import uuid
 
 from django.db import models
 
-# Create your models here.
-
 
 class NotificationType(models.IntegerChoices):
     LIKE = 1, 'Like'

@@ -8,8 +8,6 @@ from django.db import models
 from user.models import User
 from notification.models import Notification
 
-# Create your models here.
-
 
 class Post(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4)
