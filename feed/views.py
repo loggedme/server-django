@@ -209,16 +209,11 @@ class FeedDetailView(APIView):
         return str(uuid_obj) == uuid_to_test
 
 
-@permission_classes([IsAuthenticated])
-@authentication_classes([JWTAuthentication])
-class FeedLikeView(APIView):
-    def post(self, request: HttpRequest, post_id: UUID):
-        likedpost, is_created = LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
-        return Response(status=HTTPStatus.CREATED)
+class FeedLikeView(ToggleView):
+    permission_classes = [IsAuthenticated]
 
-    def delete(self, request: HttpRequest, post_id: UUID):
-        LikedPost.objects.get(post_id=post_id, user_id=request.user.id).delete()
-        return Response(status=HTTPStatus.OK)
+    def get_queryset(self):
+        return LikedPost.objects.filter(user=self.request.user)
 
 
 class CommentListView(generics.ListCreateAPIView):
