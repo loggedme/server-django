@@ -33,7 +33,7 @@ class UserSerializer(serializers.ModelSerializer):
         user = self._get_current_user()
         if user is None or user.is_anonymous:
             return False
-        return user.follower.filter(user=obj).exists()
+        return user.following.filter(user=obj).exists()
 
     def _get_current_user(self) -> Union[User, AnonymousUser, None]:
         if 'request' not in self.context:

@@ -4,98 +4,121 @@ from uuid import UUID
 from typing import List
 
 from django.db import transaction
+from django.db.models import QuerySet
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework import generics
+from rest_framework.exceptions import ValidationError, NotAuthenticated
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from user.models import User, UserType
-from feed.pagination import simple_pagination
+from user.services import get_user
+from feed.pagination import simple_pagination, SimplePagination
 from feed.models import *
 from feed.serializers import *
 from notification.services import notify_comment, notify_like, notify_tag
 
 
-@permission_classes([IsAuthenticatedOrReadOnly])
-@authentication_classes([JWTAuthentication])
-class FeedView(APIView):
-    def get(self, request: HttpRequest):
-        queryset = Post.objects.order_by('-created_at')
-        if 'type' in request.GET:
-            if request.GET['type'] == 'personal':
-                queryset = queryset.filter(created_by__account_type=UserType.PERSONAL)
-            elif request.GET['type'] == 'business':
-                queryset = queryset.filter(created_by__account_type=UserType.BUSINESS)
-            else:
-                return Response(
-                    data={'type': 'wrong type. should be one of (personal, business)'},
-                    status=HTTPStatus.BAD_REQUEST,
-                )
-        if 'following' in request.GET:
-            if request.user.is_anonymous:
-                return Response(status=HTTPStatus.UNAUTHORIZED)
-            # TODO: 내가 팔로우 하는 사람의 피드만 보기
-        if 'trending' in request.GET:
-            # TODO: 추천 알고리즘 만들기
-            queryset = queryset.order_by('-likedpost')
-        if 'hashtag' in request.GET:
-            query = request.GET.get('hashtag', '').strip()
-            if not query:
-                return Response(status=HTTPStatus.BAD_REQUEST)
-            post_ids = HashTaggedPost.objects.filter(hashtag__name=query).values_list('post', flat=True)
-            queryset = queryset.filter(id__in=post_ids)
-        page = simple_pagination.paginate_queryset(queryset.all(), request, view=self)
-        serializer = PostSerializer(instance=page, many=True)
-        return simple_pagination.get_paginated_response(serializer.data)
+class FeedListView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    serializer_class = PostSerializer
+    pagination_class = SimplePagination
 
-    def post(self, request: HttpRequest):
-        # TODO: 누락된 키가 있을 경우 예외처리
+    def get_queryset(self):
+        queryset = Post.objects.order_by('-created_at')
+        queryset = self._filter_queryset_type(queryset)
+        queryset = self._filter_queryset_following(queryset)
+        queryset = self._filter_queryset_trending(queryset)
+        queryset = self._filter_queryset_hashtag(queryset)
+        return queryset
+
+    def _filter_queryset_type(self, queryset: QuerySet[Post]) -> QuerySet[Post]:
+        raw_type = self.request.GET.get('type')
+        if raw_type is None:
+            return queryset
+        for key, value in UserType.choices:
+            if value.lower() == raw_type:
+                return queryset.filter(created_by__account_type=key)
+        raise ValidationError(f'"{raw_type}" is not a valid type. choices are ["personal", "business"]')
+
+    def _filter_queryset_following(self, queryset: QuerySet[Post]) -> QuerySet[Post]:
+        raw_following = self.request.GET.get('following')
+        if raw_following is None:
+            return queryset
+        if raw_following == 'false':
+            raise ValidationError('exclude followings is not supported.')
+        if raw_following != '' and raw_following != 'true':
+            raise ValidationError(f'"following={raw_following}" is invalid')
+        if not self.request.user.is_authenticated:
+            raise NotAuthenticated()
+        user: User = self.request.user
+        following_ids = user.following.values_list('user', flat=True)
+        return queryset.filter(created_by__id__in=following_ids)
+
+    def _filter_queryset_trending(self, queryset: QuerySet[Post]) -> QuerySet[Post]:
+        if self.request.GET.get('trending', 'false') == 'false':
+            return queryset
+        return queryset.order_by('-likedpost')
+
+    def _filter_queryset_hashtag(self, queryset: QuerySet[Post]) -> QuerySet[Post]:
+        raw_hashtag = self.request.GET.get('hashtag')
+        if raw_hashtag is None:
+            return queryset
+        if raw_hashtag != raw_hashtag.strip():
+            raise ValidationError("spaces are not allowed for hashtag")
+        if raw_hashtag == '':
+            raise ValidationError("empty hashtag is not allowed")
+        post_ids = HashTaggedPost.objects.filter(hashtag__name=raw_hashtag).values_list('post', flat=True)
+        return queryset.filter(id__in=post_ids)
+
+
+    def create(self, request: HttpRequest, *args, **kwargs):
+        super().create
         user: User = request.user
+        with transaction.atomic():
+            if user.account_type == UserType.PERSONAL:
+                post = self._create_personal_post(request)
+            elif user.account_type == UserType.BUSINESS:
+                post = self._create_business_post(request)
+        return Response(data=self.get_serializer(instance=post).data, status=HTTPStatus.CREATED)
+
+    def _create_personal_post(self, request: HttpRequest) -> Post:
+            try:
+                post = Post()
+                post.content = request.data['content']
+                post.tagged_user = get_user(request.data['tagged_user'])
+                post.created_by = request.user
+                post.save()
+                self._create_post_images(request, post)
+                return post
+            except KeyError as e:
+                raise ValidationError(str(e))
+
+    def _create_business_post(self, request: HttpRequest) -> Post:
+            try:
+                post = Post()
+                post.content = request.data['content']
+                post.created_by = request.user
+                post.save()
+                self._create_post_images(request, post)
+                return post
+            except KeyError as e:
+                raise ValidationError(str(e))
+
+    def _create_post_images(self, request: HttpRequest, post: Post):
         images = request.FILES.getlist('images')
         if len(images) == 0 or len(images) > 10:
-            return Response(data={'images': f'{len(images)} images received.'}, status=HTTPStatus.BAD_REQUEST)
-        with transaction.atomic():
-            post = Post()
-            post.content = request.data['content']
-            post.created_by = user
-            if user.account_type == UserType.PERSONAL:
-                try:
-                    post.tagged_user = self.get_user_by_id_or_handle(request.data['tagged_user'])
-                except User.DoesNotExist as e:
-                    return Response(data={'tagged_user': e.args}, status=HTTPStatus.BAD_REQUEST)
-            elif user.account_type == UserType.BUSINESS:
-                post.tagged_user = None
-            else:
-                raise Exception()
-            post.save()
-            for order, image in enumerate(images):
-                postimage = PostImage()
-                postimage.post = post
-                postimage.image = image
-                postimage.order = order
-                postimage.save()
-        if post.tagged_user is not None:
-            notify_tag(notified_user=post.tagged_user, tagged_by=user, post=post)
-        serializer = PostSerializer(instance=post)
-        return Response(serializer.data, status=HTTPStatus.CREATED)
-
-    def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
-        kwargs = {}
-        if self.is_uuid(id_or_handle):
-            kwargs['id'] = UUID(id_or_handle)
-        else:
-            kwargs['handle'] = id_or_handle
-        return User.objects.get(**kwargs)
-
-    def is_uuid(self, uuid_to_test: str) -> bool:
-        try:
-            uuid_obj = UUID(uuid_to_test)
-        except ValueError:
-            return False
-        return str(uuid_obj) == uuid_to_test
+            raise ValidationError(f'{len(images)} images are not allowed.')
+        for order, image in enumerate(images):
+            postimage = PostImage()
+            postimage.post = post
+            postimage.image = image
+            postimage.order = order
+            postimage.save()
 
 
 @permission_classes([IsAuthenticatedOrReadOnly])
