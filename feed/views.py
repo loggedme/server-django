@@ -201,35 +201,17 @@ class FeedLikeView(APIView):
         return Response(status=HTTPStatus.OK)
 
 
-@permission_classes([IsAuthenticatedOrReadOnly])
-@authentication_classes([JWTAuthentication])
-class FeedCommentView(APIView):
-    @permission_classes([AllowAny])
-    def get(self, request: HttpRequest, post_id: UUID):
-        try:
-            post = Post.objects.get(id=post_id)
-        except Post.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        queryset = post.comment_set.all()
-        page = simple_pagination.paginate_queryset(queryset, request, view=self)
-        serializer = CommentSerializer(
-            instance=page,
-            many=True,
-        )
-        return simple_pagination.get_paginated_response(serializer.data)
+class CommentListView(generics.ListCreateAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    serializer_class = CommentSerializer
+    pagination_class = SimplePagination
+    queryset = Comment.objects
 
-    def post(self, request: HttpRequest, post_id: UUID):
-        try:
-            post = Post.objects.get(id=post_id)
-        except Post.DoesNotExist:
-            return Response(status=HTTPStatus.NOT_FOUND)
-        if 'content' not in request.data:
-            return Response(status=HTTPStatus.BAD_REQUEST)
-        comment = post.comment_set.create(
-            content=request.data['content'],
-            created_by=request.user,
-        )
-        return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
+    def get_queryset(self):
+        return super().get_queryset().filter(**self.kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(post_id=self.kwargs['post_id'])
 
 
 class CommentDetailsView(generics.RetrieveDestroyAPIView):

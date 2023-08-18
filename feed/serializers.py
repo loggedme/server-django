@@ -11,7 +11,10 @@ from feed.models import *
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = UserSerializer(source="created_by")
+    author = UserSerializer(
+        source="created_by",
+        default=serializers.CurrentUserDefault(),
+    )
 
     class Meta:
         model = Comment
