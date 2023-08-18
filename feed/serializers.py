@@ -10,10 +10,6 @@ from user.serializers import UserSerializer
 from feed.models import *
 
 
-# TODO: 진짜 썸네일 이미지 URL 매핑하기
-CAT_IMAGE_URL = 'https://img.animalplanet.co.kr/news/2021/01/14/700/7xx53252im2gfs7i2ksr.jpg'
-
-
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(source="created_by")
 
