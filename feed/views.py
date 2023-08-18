@@ -74,50 +74,29 @@ class FeedListView(generics.ListCreateAPIView):
         post_ids = HashTaggedPost.objects.filter(hashtag__name=raw_hashtag).values_list('post', flat=True)
         return queryset.filter(id__in=post_ids)
 
-
-    def create(self, request: HttpRequest, *args, **kwargs):
-        super().create
-        user: User = request.user
-        with transaction.atomic():
-            if user.account_type == UserType.PERSONAL:
-                post = self._create_personal_post(request)
-            elif user.account_type == UserType.BUSINESS:
-                post = self._create_business_post(request)
-        return Response(data=self.get_serializer(instance=post).data, status=HTTPStatus.CREATED)
-
-    def _create_personal_post(self, request: HttpRequest) -> Post:
-            try:
-                post = Post()
-                post.content = request.data['content']
-                post.tagged_user = get_user(request.data['tagged_user'])
-                post.created_by = request.user
-                post.save()
-                self._create_post_images(request, post)
-                return post
-            except KeyError as e:
-                raise ValidationError(str(e))
-
-    def _create_business_post(self, request: HttpRequest) -> Post:
-            try:
-                post = Post()
-                post.content = request.data['content']
-                post.created_by = request.user
-                post.save()
-                self._create_post_images(request, post)
-                return post
-            except KeyError as e:
-                raise ValidationError(str(e))
-
-    def _create_post_images(self, request: HttpRequest, post: Post):
-        images = request.FILES.getlist('images')
+    def perform_create(self, serializer: PostSerializer):
+        images = self.request.FILES.getlist('images')
         if len(images) == 0 or len(images) > 10:
             raise ValidationError(f'{len(images)} images are not allowed.')
-        for order, image in enumerate(images):
-            postimage = PostImage()
-            postimage.post = post
-            postimage.image = image
-            postimage.order = order
-            postimage.save()
+        kwargs = {}
+        if 'tagged_user' in self.request.data:
+            try:
+                user_id = UUID(self.request.data['tagged_user'])
+                kwargs['tagged_user'] = User.objects.get(id=user_id)
+            except ValueError as e:
+                raise ValidationError(e)
+            except User.DoesNotExist:
+                raise ValidationError({
+                    "message": f"User with id '{user_id}' is not found.",
+                })
+        with transaction.atomic():
+            post = serializer.save(**kwargs)
+            for order, image in enumerate(images):
+                postimage = PostImage()
+                postimage.post = post
+                postimage.image = image
+                postimage.order = order
+                postimage.save()
 
 
 class FeedDetailView(generics.RetrieveUpdateDestroyAPIView):
