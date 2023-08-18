@@ -1,23 +1,15 @@
-import json
-from http import HTTPStatus
 from uuid import UUID
-from typing import List
 
 from django.db import transaction
 from django.db.models import QuerySet
 from django.http import HttpRequest
-from django.shortcuts import get_object_or_404
-from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework import generics, views, status
 from rest_framework.exceptions import ValidationError, NotAuthenticated, PermissionDenied
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
-from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from user.models import User, UserType
-from user.services import get_user
-from feed.pagination import simple_pagination, SimplePagination
+from feed.pagination import SimplePagination
 from feed.models import *
 from feed.serializers import *
 
