@@ -8,7 +8,7 @@ from django.db.models import QuerySet
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import authentication_classes, permission_classes
-from rest_framework import generics
+from rest_framework import generics, views, status
 from rest_framework.exceptions import ValidationError, NotAuthenticated, PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -20,26 +20,6 @@ from user.services import get_user
 from feed.pagination import simple_pagination, SimplePagination
 from feed.models import *
 from feed.serializers import *
-
-
-class ToggleView(views.APIView):
-    def get_queryset(self) -> QuerySet:
-        pass
-
-    def _set_attrs(self, request: HttpRequest, **kwargs):
-        self.kwargs = kwargs
-        self.request = request
-
-    def post(self, request: HttpRequest, **kwargs):
-        self._set_attrs(request, **kwargs)
-        obj, created = self.get_queryset().get_or_create(**kwargs)
-        return Response(status=status.HTTP_202_ACCEPTED if not created else status.HTTP_205_RESET_CONTENT)
-
-    def delete(self, request: HttpRequest, **kwargs):
-        self._set_attrs(request, **kwargs)
-        obj, created = self.get_queryset().get_or_create(**kwargs)
-        obj.delete()
-        return Response(status=status.HTTP_202_ACCEPTED if created else status.HTTP_205_RESET_CONTENT)
 
 
 class FeedListView(generics.ListCreateAPIView):
@@ -209,18 +189,36 @@ class FeedDetailView(APIView):
         return str(uuid_obj) == uuid_to_test
 
 
-class FeedLikeView(ToggleView):
+class FeedLikeView(views.APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return LikedPost.objects.filter(user=self.request.user)
+    def get_queryset(self) -> QuerySet:
+        return LikedPost.objects
+
+    def post(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        return Response(status=status.HTTP_202_ACCEPTED if not created else status.HTTP_205_RESET_CONTENT)
+
+    def delete(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        obj.delete()
+        return Response(status=status.HTTP_202_ACCEPTED if created else status.HTTP_205_RESET_CONTENT)
 
 
-class FeedSaveView(ToggleView):
+class FeedSaveView(views.APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return SavedPost.objects.filter(user=self.request.user)
+    def get_queryset(self) -> QuerySet:
+        return SavedPost.objects
+
+    def post(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        return Response(status=status.HTTP_202_ACCEPTED if not created else status.HTTP_205_RESET_CONTENT)
+
+    def delete(self, request: HttpRequest, **kwargs):
+        obj, created = self.get_queryset().get_or_create(user=request.user, **kwargs)
+        obj.delete()
+        return Response(status=status.HTTP_202_ACCEPTED if created else status.HTTP_205_RESET_CONTENT)
 
 
 class CommentListView(generics.ListCreateAPIView):
