@@ -17,4 +17,4 @@ class NotificationListView(ListAPIView):
         user = self.request.user
         if user.is_anonymous:
             return []
-        return user.notifications.all()
+        return user.notifications.order_by('-created_at').all()
