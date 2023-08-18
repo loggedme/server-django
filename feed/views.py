@@ -20,7 +20,6 @@ from user.services import get_user
 from feed.pagination import simple_pagination, SimplePagination
 from feed.models import *
 from feed.serializers import *
-from notification.services import notify_comment, notify_like, notify_tag
 
 
 class FeedListView(generics.ListCreateAPIView):
@@ -94,7 +93,6 @@ class FeedListView(generics.ListCreateAPIView):
                 post.created_by = request.user
                 post.save()
                 self._create_post_images(request, post)
-                notify_tag(post.tagged_user, post.created_by, post)
                 return post
             except KeyError as e:
                 raise ValidationError(str(e))
@@ -196,7 +194,6 @@ class FeedDetailView(APIView):
 class FeedLikeView(APIView):
     def post(self, request: HttpRequest, post_id: UUID):
         likedpost, is_created = LikedPost.objects.get_or_create(post_id=post_id, user_id=request.user.id)
-        notify_like(notified_user=likedpost.post.created_by, liked_by=request.user, post=likedpost.post)
         return Response(status=HTTPStatus.CREATED)
 
     def delete(self, request: HttpRequest, post_id: UUID):
@@ -232,7 +229,6 @@ class FeedCommentView(APIView):
             content=request.data['content'],
             created_by=request.user,
         )
-        notify_comment(notified_user=post.created_by, commented_by=comment.created_by, comment=comment)
         return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
 
 

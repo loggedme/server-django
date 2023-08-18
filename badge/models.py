@@ -2,6 +2,8 @@ import uuid
 from django.db import models
 
 from user.models import User
+from notification.models import Notification
+
 
 class Badge(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -16,3 +18,7 @@ class BadgedUser(models.Model):
 
     class Meta:
         unique_together = ['badge', 'user']
+
+    def save(self, *args, **kwargs) -> None:
+        super(BadgedUser, self).save(*args, **kwargs)
+        Notification.notify_badged(self.user, self.badge.created_by, self)

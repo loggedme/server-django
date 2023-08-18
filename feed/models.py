@@ -6,6 +6,7 @@ from uuid import uuid4
 from django.db import models
 
 from user.models import User
+from notification.models import Notification
 
 # Create your models here.
 
@@ -26,6 +27,8 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         super(Post, self).save(*args, **kwargs)
+        if self.tagged_user is not None:
+            Notification.notify_tagged(self.tagged_user, self.created_by, self)
         self.hashtaggedpost_set.all().delete()
         for word in set(re.findall(r"#(\w+)", self.content)):
             try:
@@ -65,6 +68,10 @@ class Comment(models.Model):
     content = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def save(self, *args, **kwargs) -> None:
+        super(Comment, self).save(*args, **kwargs)
+        Notification.notify_commented(self.post.created_by, self.created_by, self)
 
 
 class HashTag(models.Model):
