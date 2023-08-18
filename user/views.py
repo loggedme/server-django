@@ -98,15 +98,15 @@ class UserSignupSearchView(generics.ListCreateAPIView):
             self.permission_classes = [permissions.IsAuthenticated]
             if type == "business":
                 users = User.objects.annotate(
-                    follower_count=Count('followed_user', distinct=True)
+                    follower_count=Count('follower', distinct=True)
                     ).filter(account_type=2).order_by('-follower_count')[:5]
             elif type == "personal":
                 users = User.objects.annotate(
-                    follower_count=Count('followed_user', distinct=True)
+                    follower_count=Count('follower', distinct=True)
                     ).filter(account_type=1).order_by('-follower_count')[:5]
             elif not type:
                 users = User.objects.annotate(
-                    follower_count=Count('followed_user', distinct=True)
+                    follower_count=Count('follower', distinct=True)
                     ).order_by('-follower_count')[:5]
         elif type and query:  # 검색
             if type == "business":
