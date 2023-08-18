@@ -124,69 +124,30 @@ class FeedDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = PostSerializer
     queryset = Post.objects
+    lookup_url_kwarg = 'post_id'
 
+    def check_object_permissions(self, request: HttpRequest, obj: Post):
+        if request.method != 'GET' and obj.created_by != request.user:
+            raise PermissionDenied({
+                "message": "자신이 작성한 피드만 수정하거나 삭제 할 수 있습니다.",
+                "author": obj.created_by.handle,
+                "currentUser": request.user.handle,
+            })
+        return super().check_object_permissions(request, obj)
 
-@permission_classes([IsAuthenticatedOrReadOnly])
-@authentication_classes([JWTAuthentication]) # 토큰을 사용한 로그인 검사 (외부모듈 사용)
-class FeedDetailView(APIView):
-    def get(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id) # 피드 아이디에 해당하는 피드 가져옴
-        serializer = PostSerializer(instance=post) # 로그인한 사용자 정보를 반영하여 피드 정보를 JSON으로 변경
-        return Response(serializer.data, status=HTTPStatus.OK) # 재전송
-
-    def put(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id)
-        user: User = request.user
-        data = json.loads(request.body)
-        if post.created_by != user:
-            return Response(status=HTTPStatus.FORBIDDEN)
-        with transaction.atomic():
-            post.content = data['content']
-            if user.account_type == UserType.PERSONAL:
-                try:
-                    post.tagged_user = self.get_user_by_id_or_handle(data['tagged_user'])
-                except User.DoesNotExist as e:
-                    return Response(data={'tagged_user': e.args}, status=HTTPStatus.BAD_REQUEST)
-            elif user.account_type == UserType.BUSINESS:
-                post.tagged_user = None
-            else:
-                raise Exception()
-            post.save()
-            # TODO: 새로운 이미지 추가
-            image_urls: List[str] = data['image_urls']
-            for postimage in post.postimage_set.all():
-                try:
-                    postimage.order = image_urls.index(postimage.image.url)+1
-                    postimage.save()
-                except ValueError:
-                    print(postimage.image.url, 'not found from', image_urls)
-                    postimage.delete()
-        if post.tagged_user is not None:
-            notify_tag(notified_user=post.tagged_user, tagged_by=user, post=post)
-        serializer = PostSerializer(instance=post)
-        return Response(serializer.data, status=HTTPStatus.OK)
-
-    def delete(self, request: HttpRequest, post_id: UUID, **kwargs):
-        post = get_object_or_404(Post, id=post_id)
-        if post.created_by != request.user:
-            return Response(status=HTTPStatus.FORBIDDEN)
-        post.delete()
-        return Response(status=HTTPStatus.OK)
-
-    def get_user_by_id_or_handle(self, id_or_handle: str) -> User:
+    def perform_update(self, serializer: PostSerializer):
         kwargs = {}
-        if self.is_uuid(id_or_handle):
-            kwargs['id'] = UUID(id_or_handle)
-        else:
-            kwargs['handle'] = id_or_handle
-        return User.objects.get(**kwargs)
-
-    def is_uuid(self, uuid_to_test: str) -> bool:
-        try:
-            uuid_obj = UUID(uuid_to_test)
-        except ValueError:
-            return False
-        return str(uuid_obj) == uuid_to_test
+        if 'tagged_user' in self.request.data:
+            try:
+                user_id = UUID(self.request.data['tagged_user'])
+                kwargs['tagged_user'] = User.objects.get(id=user_id)
+            except ValueError as e:
+                raise ValidationError(e)
+            except User.DoesNotExist:
+                raise ValidationError({
+                    "message": f"User with id '{user_id}' is not found.",
+                })
+        serializer.save(**kwargs)
 
 
 class FeedLikeView(views.APIView):

@@ -29,19 +29,23 @@ class CommentSerializer(serializers.ModelSerializer):
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(
         source='created_by',
+        default=serializers.CurrentUserDefault(),
     )
-    tagged_user = UserSerializer(
-        allow_null=True,
+    tagged_user = UserSerializer(read_only=True)
+    content = serializers.CharField(
+        max_length=2000,
+        allow_blank=False,
     )
     image_urls = serializers.SerializerMethodField()
     comment = CommentSerializer(
         source='comment_set',
         many=True,
+        read_only=True,
     )
-    likes = serializers.SerializerMethodField()
-    is_edited = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField()
-    is_saved = serializers.SerializerMethodField()
+    likes = serializers.SerializerMethodField(read_only=True)
+    is_edited = serializers.SerializerMethodField(read_only=True)
+    is_liked = serializers.SerializerMethodField(read_only=True)
+    is_saved = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Post
