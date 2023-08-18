@@ -9,7 +9,7 @@ from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError, NotAuthenticated
+from rest_framework.exceptions import ValidationError, NotAuthenticated, PermissionDenied
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
@@ -121,6 +121,12 @@ class FeedListView(generics.ListCreateAPIView):
             postimage.save()
 
 
+class FeedDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    serializer_class = PostSerializer
+    queryset = Post.objects
+
+
 @permission_classes([IsAuthenticatedOrReadOnly])
 @authentication_classes([JWTAuthentication]) # 토큰을 사용한 로그인 검사 (외부모듈 사용)
 class FeedDetailView(APIView):
@@ -229,12 +235,13 @@ class FeedCommentView(APIView):
         return Response(CommentSerializer(instance=comment).data, status=HTTPStatus.CREATED)
 
 
-@permission_classes([IsAuthenticated])
-@authentication_classes([JWTAuthentication])
-class FeedCommentDetailView(APIView):
-    def delete(self, request: HttpRequest, post_id: UUID, comment_id: UUID):
-        comment = get_object_or_404(Comment, id=comment_id)
-        if comment.created_by != request.user:
-            return Response(status=HTTPStatus.FORBIDDEN)
-        comment.delete()
-        return Response(status=HTTPStatus.OK)
+class CommentDetailsView(generics.RetrieveDestroyAPIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    serializer_class = CommentSerializer
+    queryset = Comment.objects
+    lookup_url_kwarg = 'comment_id'
+
+    def perform_destroy(self, instance: Comment):
+        if self.request.user != instance.created_by:
+            raise PermissionDenied('자신이 작성한 댓글만 삭제할 수 있습니다.')
+        return super().perform_destroy(instance)
