@@ -11,30 +11,30 @@ from badge.models import Badge, BadgedUser
 from badge.serializers import BadgeSerializer
 from notification.services import notify_badge
 
-
-class BusinessUserPermission(permissions.BasePermission):
-    def has_permission(self, request, *args):
-        user = request.user
-        if user.is_anonymous:
-            return False
-        return user.account_type == UserType.BUSINESS
-
 class BadgeCreateView(generics.CreateAPIView):
     serializer_class = BadgeSerializer
-    permission_classes = [BusinessUserPermission]
+    permission_classes = [permissions.AllowAny]
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
         self_badge = BadgedUser.objects.create(badge_id=serializer.data['id'], user_id=self.request.user.id)
         self_badge.save()
 
+    def create(self, request):
+        if request.user.is_anonymous:
+            return Response(status=HTTPStatus.UNAUTHORIZED)
+        if request.user.account_type != UserType.BUSINESS:
+            return Response(status=HTTPStatus.FORBIDDEN)
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=HTTPStatus.BAD_REQUEST)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=HTTPStatus.CREATED, headers=headers)
+
 class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BadgeSerializer
-
-    def get_permissions(self):
-        if self.request.method == "GET":
-            return [permissions.AllowAny()]
-        return [BusinessUserPermission]
+    permission_classes = [permissions.AllowAny]
 
     def get_object(self):
         badge_id = self.kwargs['badge_id']
@@ -50,6 +50,10 @@ class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
         return Response(serializer.data)
 
     def patch(self, request, badge_id, *args, **kwargs):
+        if request.user.is_anonymous:
+            return Response(status=HTTPStatus.UNAUTHORIZED)
+        if request.user.account_type != UserType.BUSINESS:
+            return Response(status=HTTPStatus.FORBIDDEN)
         badge = get_object_or_404(Badge, id=badge_id)
         if badge.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
@@ -59,6 +63,10 @@ class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
         return self.patch(request, badge_id, *args, **kwargs)
 
     def destroy(self, request, badge_id):
+        if request.user.is_anonymous:
+            return Response(status=HTTPStatus.UNAUTHORIZED)
+        if request.user.account_type != UserType.BUSINESS:
+            return Response(status=HTTPStatus.FORBIDDEN)
         badge = get_object_or_404(Badge, id=badge_id)
         if badge.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
@@ -67,11 +75,11 @@ class BadgeUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
 
 class BadgedUserCreateDeleteView(generics.GenericAPIView):
     serializer_class = BadgeSerializer
-    permission_classes = [BusinessUserPermission]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, **kwargs):
         badge = get_object_or_404(Badge, id=kwargs["badge_id"])
-        if badge.created_by != request.user:
+        if request.user.account_type != UserType.BUSINESS or badge.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
         user_ids = request.data.get('users')
         user_list = []
@@ -86,8 +94,9 @@ class BadgedUserCreateDeleteView(generics.GenericAPIView):
             except (User.DoesNotExist, IntegrityError):
                 continue
 
-        badge_serializer = BadgeSerializer(badge)
-        recipient_serializer = UserSerializer(user_list, many=True)
+        badge_serializer = self.get_serializer(badge)
+        self.serializer_class = UserSerializer
+        recipient_serializer = self.get_serializer(user_list, many=True)
         data = {
             "badge": badge_serializer.data,
             "recipient": { "items": recipient_serializer.data }
@@ -97,7 +106,7 @@ class BadgedUserCreateDeleteView(generics.GenericAPIView):
 
     def delete(self, request, badge_id):
         badge = get_object_or_404(Badge, id=badge_id)
-        if badge.created_by != request.user:
+        if request.user.account_type != UserType.BUSINESS or badge.created_by != request.user:
             return Response(status=HTTPStatus.FORBIDDEN)
         user_ids = request.data.get('users', [])
 
