@@ -27,8 +27,11 @@ class Post(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         super(Post, self).save(*args, **kwargs)
+        self.update_hashtags()
         if self.tagged_user is not None:
             Notification.notify_tagged(self.tagged_user, self.created_by, self)
+
+    def update_hashtags(self):
         self.hashtaggedpost_set.all().delete()
         for word in set(re.findall(r"#(\w+)", self.content)):
             try:
