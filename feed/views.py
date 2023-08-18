@@ -216,6 +216,13 @@ class FeedLikeView(ToggleView):
         return LikedPost.objects.filter(user=self.request.user)
 
 
+class FeedSaveView(ToggleView):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedPost.objects.filter(user=self.request.user)
+
+
 class CommentListView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     serializer_class = CommentSerializer
