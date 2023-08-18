@@ -19,5 +19,6 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     def get_type(self, obj: Notification):
         for value, label in NotificationType.choices:
-            return label.lower()
+            if obj.type == value:
+                return label.lower()
         raise ValueError()
