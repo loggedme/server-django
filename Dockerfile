@@ -48,11 +48,5 @@ RUN python manage.py makemigrations
 RUN python manage.py migrate
 
 
-# HTTPS 통신을 위한 세팅
-RUN echo "KR\nSeoul\nJongRo\nLikelion-Univ.\nLogged.me\nDjango-server\nhepheir@gmail.com" > django.cert.details
-RUN openssl genrsa 2048 > django.key
-RUN openssl req -new -x509 -nodes -sha256 -days 365 -key django.key > django.cert < django.cert.details
-
-
-EXPOSE 443
-ENTRYPOINT ["python", "manage.py", "runsslserver", "--certificate", "/django.cert", "--key", "/django.key", "0:443"]
+EXPOSE 80
+ENTRYPOINT ["python", "manage.py", "runserver", "0:80"]
