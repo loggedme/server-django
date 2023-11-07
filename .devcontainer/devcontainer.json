@@ -14,11 +14,11 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		8000
+		443
 	],
 
 	// Uncomment the next line to run commands after the container is created.
-	"postCreateCommand": "python manage.py runserver 0:8000"
+	"postCreateCommand": ["python", "manage.py", "runsslserver", "--certificate", "/django.cert", "--key", "/django.key", "0:443"]
 
 	// Configure tool-specific properties.
 	// "customizations": {},

@@ -35,14 +35,24 @@ ENV DJANGO__EMAIL_PORT=587
 ENV DJANGO__EMAIL_USE_TLS=true
 
 
-WORKDIR /usr/src/app
-COPY requirements.txt ./
-RUN pip install -r requirements.txt
 COPY . .
 
-EXPOSE 8000
 
+# Python 의존성 설치
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+
+
+# Django 데이터 베이스 구축
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
-ENTRYPOINT ["python", "manage.py", "runserver", "0:8000"]
+
+# HTTPS 통신을 위한 세팅
+RUN echo "KR\nSeoul\nJongRo\nLikelion-Univ.\nLogged.me\nDjango-server\nhepheir@gmail.com" > django.cert.details
+RUN openssl genrsa 2048 > django.key
+RUN openssl req -new -x509 -nodes -sha256 -days 365 -key django.key > django.cert < django.cert.details
+
+
+EXPOSE 443
+ENTRYPOINT ["python", "manage.py", "runsslserver", "--certificate", "/django.cert", "--key", "/django.key", "0:443"]
