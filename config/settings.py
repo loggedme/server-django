@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import json
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -18,29 +17,19 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRETS_JSON = BASE_DIR / 'secrets.json'
 
 
-secrets = {}
-
-if os.path.exists(SECRETS_JSON):
-    with open(SECRETS_JSON, 'r') as f:
-        secrets: dict = json.loads(f.read())
-else:
-    secrets = os.environ
-
-
-HOSTNAME = secrets['HOSTNAME']
+HOSTNAME = os.environ.get('DJANGO__HOSTNAME')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = secrets['SECRET_KEY']
+SECRET_KEY = os.environ.get('DJANGO__SECRET_KEY', 'django-insecure-!7fh-6z79p%hjeor#_ju75n%50&lh-r3zi9!(m&y_%e+4m5tdx')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = bool(os.environ.get('DJANGO__DEBUG', False))
 
 ALLOWED_HOSTS = [
     '*',
@@ -59,8 +48,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt',
-
     'corsheaders',
+
     'user',
     'feed',
     'badge',
@@ -116,22 +105,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': secrets['DATABASE_ENGINE'],
-        'NAME': secrets['DATABASE_NAME'],
-        'USER': secrets['DATABASE_USER'],
-        'PASSWORD': secrets['DATABASE_PASSWORD'],
-        'HOST': secrets['DATABASE_HOST'],
-        'PORT': secrets['DATABASE_PORT'],
+        'ENGINE': os.environ.get('DJANGO__DATABASE_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.environ.get('DJANGO__DATABASE_NAME', BASE_DIR / 'db.sqlite3'),
+        'USER': os.environ.get('DJANGO__DATABASE_USER', None),
+        'PASSWORD': os.environ.get('DJANGO__DATABASE_PASSWORD', None),
+        'HOST': os.environ.get('DJANGO__DATABASE_HOST', None),
+        'PORT': os.environ.get('DJANGO__DATABASE_PORT', None),
     }
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = secrets['EMAIL_HOST']
-EMAIL_HOST_USER = secrets['EMAIL_HOST_USER']
-EMAIL_HOST_PASSWORD = secrets['EMAIL_HOST_PASSWORD']
-EMAIL_USE_TLS = secrets['EMAIL_USE_TLS']
-EMAIL_PORT = secrets['EMAIL_PORT']
-DEFAULT_FROM_MAIL = secrets['DEFAULT_FROM_MAIL']
+EMAIL_HOST = os.environ.get('DJANGO__EMAIL_HOST')
+EMAIL_HOST_USER = os.environ.get('DJANGO__EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('DJANGO__EMAIL_HOST_PASSWORD')
+EMAIL_PORT = os.environ.get('DJANGO__EMAIL_PORT')
+EMAIL_USE_TLS = bool(os.environ.get('DJANGO__EMAIL_USE_TLS', True))
+DEFAULT_FROM_MAIL = os.environ.get('DJANGO__DEFAULT_FROM_MAIL', EMAIL_HOST_USER)
 
 
 # Password validation

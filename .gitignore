@@ -63,7 +63,6 @@ db.sqlite3-journal
 */migrations/*
 !*/migrations/__init__.py
 media
-secrets.json
 
 # Flask stuff:
 instance/
