@@ -9,7 +9,6 @@ from user.models import User, UserType
 from user.serializers import UserSerializer
 from badge.models import Badge, BadgedUser
 from badge.serializers import BadgeSerializer
-from notification.services import notify_badge
 
 class BadgeCreateView(generics.CreateAPIView):
     serializer_class = BadgeSerializer
@@ -90,7 +89,6 @@ class BadgedUserCreateDeleteView(generics.GenericAPIView):
                 badged_user = BadgedUser(user=user, badge=badge)
                 badged_user.save()
                 user_list.append(user)
-                notify_badge(notified_user=badged_user.user, badged_by=request.user, badge=badged_user.badge)
             except (User.DoesNotExist, IntegrityError):
                 continue
 

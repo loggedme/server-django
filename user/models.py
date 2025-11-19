@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import uuid
+
 from django.db import models
 from django.db.models import QuerySet
 from django.contrib.auth.models import AbstractUser
 
-import uuid
+from notification.models import Notification
 
 
 class UserType(models.IntegerChoices):
@@ -32,3 +34,7 @@ class FollowedUser(models.Model):
 
     class Meta:
         unique_together = ['user', 'followed_by']
+
+    def save(self, *args, **kwargs) -> None:
+        super(FollowedUser, self).save(*args, **kwargs)
+        Notification.notify_followed(self.user, self.followed_by)

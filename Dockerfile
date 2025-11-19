@@ -1,52 +1,27 @@
 FROM python:3.8
 
+# Create the app directory
+RUN mkdir /app
 
-ENV DJANGO__SECRET_KEY="????????"
-ENV DJANGO__HOSTNAME="http://localhost:8000"
+# Set the working directory inside the container
+WORKDIR /app
 
+# Set environment variables
+# Prevents Python from writing pyc files to disk
+ENV PYTHONDONTWRITEBYTECODE=1
+#Prevents Python from buffering stdout and stderr
+ENV PYTHONUNBUFFERED=1
 
-# =============================================================
-# 아래의 주석을 해제하여 개발 모드에서 서버 구동
-# =============================================================
-# ENV DJANGO__DEBUG=true
+# Upgrade pip
+RUN pip install --upgrade pip
 
+# Copy the Django project  and install dependencies
+COPY requirements.txt  /app/
 
-# =============================================================
-# 아래의 주석을 해제하여 외부 DB 사용.
-# DB 설정을 따로 하지 않으면 config/settings.py에서
-# sqlite3를 사용한다.
-# =============================================================
-# ENV DJANGO__DATABASE_ENGINE="django.db.backends.mysql"
-# ENV DJANGO__DATABASE_NAME=""
-# ENV DJANGO__DATABASE_USER=""
-# ENV DJANGO__DATABASE_PASSWORD=""
-# ENV DJANGO__DATABASE_HOST=""
-# ENV DJANGO__DATABASE_PORT=3306
+# run this command to install all dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
+COPY . /app/
 
-# =============================================================
-# 이메일 인증에 사용할 이메일 서비스 정보 입력 (필수)
-# =============================================================
-ENV DJANGO__EMAIL_HOST=""
-ENV DJANGO__EMAIL_HOST_USER=""
-ENV DJANGO__EMAIL_HOST_PASSWORD=""
-ENV DJANGO__DEFAULT_FROM_MAIL=""
-ENV DJANGO__EMAIL_PORT=587
-ENV DJANGO__EMAIL_USE_TLS=true
-
-
-COPY . .
-
-
-# Python 의존성 설치
-COPY requirements.txt ./
-RUN pip install -r requirements.txt
-
-
-# Django 데이터 베이스 구축
-RUN python manage.py makemigrations
-RUN python manage.py migrate
-
-
-EXPOSE 80
-ENTRYPOINT ["python", "manage.py", "runserver", "0:80"]
+EXPOSE 8000
+ENTRYPOINT ["sh", "entrypoint.sh"]

@@ -10,26 +10,27 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-import os
 from datetime import timedelta
 from pathlib import Path
+
+from . import env
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-HOSTNAME = os.environ.get('DJANGO__HOSTNAME')
+HOSTNAME = env.HOSTNAME
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO__SECRET_KEY', 'django-insecure-!7fh-6z79p%hjeor#_ju75n%50&lh-r3zi9!(m&y_%e+4m5tdx')
+SECRET_KEY = env.SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(os.environ.get('DJANGO__DEBUG', False))
+DEBUG = env.DEBUG
 
 ALLOWED_HOSTS = [
     '*',
@@ -105,22 +106,21 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('DJANGO__DATABASE_ENGINE', 'django.db.backends.sqlite3'),
-        'NAME': os.environ.get('DJANGO__DATABASE_NAME', BASE_DIR / 'db.sqlite3'),
-        'USER': os.environ.get('DJANGO__DATABASE_USER', None),
-        'PASSWORD': os.environ.get('DJANGO__DATABASE_PASSWORD', None),
-        'HOST': os.environ.get('DJANGO__DATABASE_HOST', None),
-        'PORT': os.environ.get('DJANGO__DATABASE_PORT', None),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': env.POSTGRES_DB,
+        'USER': env.POSTGRES_USER,
+        'PASSWORD': env.POSTGRES_PASSWORD,
+        'HOST': env.POSTGRES_HOST,
+        'PORT': env.POSTGRES_PORT,
     }
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = os.environ.get('DJANGO__EMAIL_HOST')
-EMAIL_HOST_USER = os.environ.get('DJANGO__EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.environ.get('DJANGO__EMAIL_HOST_PASSWORD')
-EMAIL_PORT = os.environ.get('DJANGO__EMAIL_PORT')
-EMAIL_USE_TLS = bool(os.environ.get('DJANGO__EMAIL_USE_TLS', True))
-DEFAULT_FROM_MAIL = os.environ.get('DJANGO__DEFAULT_FROM_MAIL', EMAIL_HOST_USER)
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env.EMAIL_HOST_USER
+EMAIL_HOST_PASSWORD = env.EMAIL_HOST_PASSWORD
 
 
 # Password validation
